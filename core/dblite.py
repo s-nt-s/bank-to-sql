@@ -1,33 +1,16 @@
 import os
-import re
 import sqlite3
 import logging
-from textwrap import dedent
 import errno
 from os.path import isfile
+from functools import cache
 
-re_select = re.compile(r"^\s*select\b")
-re_sp = re.compile(r"\s+")
-re_largefloat = re.compile("(\d+\.\d+e-\d+)")
-re_bl = re.compile(r"\n\s*\n", re.IGNORECASE)
-
-
-def save(file, content):
-    if file and content:
-        content = dedent(content).strip()
-        with open(file, "w") as f:
-            f.write(content)
 
 def dict_factory(cursor, row):
     d = {}
     for idx, col in enumerate(cursor.description):
         d[col[0]] = row[idx]
     return d
-
-
-
-def one_factory(cursor, row):
-    return row[0]
 
 
 def ResultIter(cursor, size=1000):
@@ -39,66 +22,25 @@ def ResultIter(cursor, size=1000):
             yield result
 
 
-class CaseInsensitiveDict(dict):
-    @classmethod
-    def _k(cls, key):
-        return key.lower() if isinstance(key, str) else key
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._convert_keys()
-
-    def __getitem__(self, key):
-        return super().__getitem__(self.__class__._k(key))
-
-    def __setitem__(self, key, value):
-        super().__setitem__(self.__class__._k(key), value)
-
-    def __delitem__(self, key):
-        return super().__delitem__(self.__class__._k(key))
-
-    def __contains__(self, key):
-        return super().__contains__(self.__class__._k(key))
-
-    def has_key(self, key):
-        return super().has_key(self.__class__._k(key))
-
-    def pop(self, key, *args, **kwargs):
-        return super().pop(self.__class__._k(key), *args, **kwargs)
-
-    def get(self, key, *args, **kwargs):
-        return super().get(self.__class__._k(key), *args, **kwargs)
-
-    def setdefault(self, key, *args, **kwargs):
-        return super().setdefault(self.__class__._k(key), *args, **kwargs)
-
-    def update(self, E=None, **F):
-        if E is not None:
-            E = self.__class__(E)
-        F=self.__class__(**F)
-        super().update(E=E, **F)
-
-    def _convert_keys(self):
-        for k in list(self.keys()):
-            v = super().pop(k)
-            self.__setitem__(k, v)
-
-
-def get_db(file, *extensions, readonly=False):
-    logging.info("sqlite: " + file)
-    if readonly:
-        file = "file:" + file + "?mode=ro"
-        con = sqlite3.connect(file, uri=True)
-    else:
-        con = sqlite3.connect(file)
-    if extensions:
-        con.enable_load_extension(True)
-        for e in extensions:
-            con.load_extension(e)
-    return con
+class EmptyInsertException(sqlite3.OperationalError):
+    pass
 
 
 class DBLite:
+    @staticmethod
+    def get_connection(file, *extensions, readonly=False):
+        logging.info("sqlite: " + file)
+        if readonly:
+            file = "file:" + file + "?mode=ro"
+            con = sqlite3.connect(file, uri=True)
+        else:
+            con = sqlite3.connect(file)
+        if extensions:
+            con.enable_load_extension(True)
+            for e in extensions:
+                con.load_extension(e)
+        return con
+
     def __init__(self, file, extensions=None, reload=False, readonly=False):
         self.readonly = readonly
         self.file = file
@@ -107,9 +49,8 @@ class DBLite:
         if self.readonly and not isfile(self.file):
             raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), file)
         self.extensions = extensions or []
-        self._tables = None
         self.inTransaction = False
-        self.con = get_db(self.file, *self.extensions, readonly=self.readonly)
+        self.con = DBLite.get_connection(self.file, *self.extensions, readonly=self.readonly)
 
     def __enter__(self, *args, **kwargs):
         return self
@@ -128,51 +69,66 @@ class DBLite:
             self.con.execute("END TRANSACTION")
             self.inTransaction = False
 
-    def execute(self, sql):
-        self.con.executescript(sql)
+    def execute(self, sql: str):
+        if isfile(sql):
+            with open(sql, "r") as f:
+                sql = f.read()
+        try:
+            self.con.executescript(sql)
+        except sqlite3.OperationalError:
+            print(sql)
+            raise
         self.con.commit()
-        self._tables = None
+        self.clear_cache()
+
+    def clear_cache(self):
+        self.get_cols.cache_clear()
+        self.get_sql_table.cache_clear()
+
+    @property
+    def tables(self) -> tuple[str]:
+        return self.to_tuple("SELECT name FROM sqlite_master WHERE type='table' order by name")
 
     @property
     def indices(self):
-        for i, in self.select("SELECT name FROM sqlite_master WHERE type='index' order by name"):
-            yield i
+        return self.to_tuple("SELECT name FROM sqlite_master WHERE type='index' order by name")
 
-    @property
-    def tables(self):
-        if self._tables is None:
-            self._tables = CaseInsensitiveDict()
-            for t, in list(self.select("SELECT name FROM sqlite_master WHERE type='table'")):
-                self._tables[t] = self.get_cols("select * from `" + t + "` limit 0")
-        return self._tables
+    @cache
+    def get_sql_table(self, table: str):
+        return self.one("SELECT sql FROM sqlite_master WHERE type='table' AND name=?", table)
 
-    def get_cols(self, sql):
+    @cache
+    def get_cols(self, sql: str) -> tuple[str]:
         _sql = sql.lower().split()
-        if len(_sql) < 2 and _sql[-1] != "limit":
-            sql = sql + " limit 1"
+        if len(_sql) == 1:
+            sql = f"select * from {sql} limit 0"
+        elif _sql[-1] != "limit":
+            sql = sql + " limit 0"
         cursor = self.con.cursor()
         cursor.execute(sql)
         cols = tuple(col[0] for col in cursor.description)
         cursor.close()
         return cols
 
-    def insert(self, table, **kwargs):
-        ok_keys = [k.upper() for k in self.tables[table]]
+    def insert(self, table: str, **kwargs):
+        ok_keys = tuple(k.lower() for k in self.get_cols(table))
         keys = []
         vals = []
         for k, v in kwargs.items():
             if v is None or (isinstance(v, str) and len(v) == 0):
                 continue
-            if k.upper() not in ok_keys:
+            if k.lower() not in ok_keys:
                 continue
             keys.append('"' + k + '"')
             vals.append(v)
+        if len(keys) == 0:
+            raise EmptyInsertException(f"insert into {table} malformed: give {kwargs}, needed {ok_keys}")
         prm = ['?'] * len(vals)
         sql = "insert into %s (%s) values (%s)" % (
             table, ', '.join(keys), ', '.join(prm))
         self.con.execute(sql, vals)
 
-    def _build_select(self, sql):
+    def _build_select(self, sql: str):
         sql = sql.strip()
         if not sql.lower().startswith("select"):
             field = "*"
@@ -198,7 +154,7 @@ class DBLite:
         self.con.commit()
         self.con.close()
 
-    def select(self, sql, *args, row_factory=None, **kwargs):
+    def select(self, sql: str, *args, row_factory=None, **kwargs):
         sql = self._build_select(sql)
         self.con.row_factory = row_factory
         cursor = self.con.cursor()
@@ -211,7 +167,15 @@ class DBLite:
         cursor.close()
         self.con.row_factory = None
 
-    def one(self, sql, *args):
+    def to_tuple(self, *args, **kwargs):
+        arr = []
+        for i in self.select(*args, **kwargs):
+            if isinstance(i, (tuple, list)) and len(i)==1:
+                i = i[0]
+            arr.append(i)
+        return tuple(arr)
+
+    def one(self, sql: str, *args):
         sql = self._build_select(sql)
         cursor = self.con.cursor()
         if len(args):
@@ -225,21 +189,3 @@ class DBLite:
         if len(r) == 1:
             return r[0]
         return r
-
-    def get_sql_table(self, table):
-        sql = "SELECT sql FROM sqlite_master WHERE type='table' AND name=?"
-        cursor = self.con.cursor()
-        cursor.execute(sql, (table,))
-        sql = cursor.fetchone()[0]
-        cursor.close()
-        return sql
-
-    def execute(self, sql, to_file=None):
-        if not isfile(sql):
-            save(to_file, sql)
-        else:
-            with open(sql, "r") as f:
-                sql = f.read()
-        self.con.executescript(sql)
-        self.con.commit()
-        self._tables = None

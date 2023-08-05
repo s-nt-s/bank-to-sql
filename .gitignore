@@ -1,3 +1,4 @@
+sql/fix/*ig*.sql
 schemaspy/*.jar
 *.db
 *.sqlite

@@ -11,8 +11,8 @@ import sys
 
 class SchemasPy:
     def __init__(self, home=None):
-        self.driver = "https://github.com/xerial/sqlite-jdbc/releases/download/3.32.3.2/sqlite-jdbc-3.32.3.2.jar"
-        self.jar = "https://github.com/schemaspy/schemaspy/releases/download/v6.1.0/schemaspy-6.1.0.jar"
+        self.driver = "https://github.com/xerial/sqlite-jdbc/releases/download/3.42.0.0/sqlite-jdbc-3.42.0.0.jar"
+        self.jar = "https://github.com/schemaspy/schemaspy/releases/download/v6.2.4/schemaspy-6.2.4.jar"
         self._driver = basename(self.driver)
         self._jar = basename(self.jar)
         self.home = home

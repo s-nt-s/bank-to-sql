@@ -1,7 +1,11 @@
-from datetime import datetime, timedelta, date
+from datetime import datetime, date
 import xlrd
 import re
-from functools import lru_cache
+from functools import cache
+from xlrd import Book
+from xlrd.sheet import Sheet
+from typing import NamedTuple
+from pathlib import Path
 
 re_sp = re.compile(r"\s+")
 
@@ -11,46 +15,69 @@ def get_date(book, s):
         d = datetime(*xlrd.xldate_as_tuple(s, book.datemode))
         return d.date()
 
+
 def get_text(s):
     if s is None:
         return None
     s = re_sp.sub(" ", s)
     s = s.strip()
-    if len(s)==0:
+    if len(s) == 0:
         return None
     return s
 
-class Movimiento:
-    def __init__(self, cuenta, book, row):
-        super().__init__()
-        self.cuenta = cuenta
-        self.fecha = get_date(book, row[0])
-        self.categoria = get_text(row[1])
-        self.subcategoria = get_text(row[2])
-        self.concepto = get_text(row[3])
-        self.importe = row[6]
-        self.saldo = row[7]
 
-    def get_key(self):
-        k = sorted(self.__dict__.items(), key=lambda x:x[0])
-        return tuple(k)
+def get_subcat(s):
+    s = get_text(s)
+    if s == "Farmacia":
+        return "Farmacia, herbolario y nutrición"
+    if s == "Taxis":
+        return "Taxi y Carsharing"
+    return s
 
-    def __eq__(self, o):
-        return self.get_key() == o.get_key()
 
-    def __hash__(self):
-        return hash(self.get_key())
+class Movimiento(NamedTuple):
+    cuenta: str
+    fecha: date
+    categoria: str
+    subcategoria: str
+    concepto: str
+    importe: float
+    saldo: float
 
-    @property
-    @lru_cache(maxsize=None)
+    @staticmethod
+    def reader(file: str | Path):
+        wb: Book = xlrd.open_workbook(file)
+        ws: Sheet = wb.sheet_by_index(0)
+        cnt = ws.cell(1, 3).value
+        cnt = re_sp.sub(" ", cnt).strip()
+        arr = []
+        for i in range(6, ws.nrows):
+            row: list = ws.row_values(i)
+            m = Movimiento(
+                cuenta=cnt,
+                fecha=get_date(wb, row[0]),
+                categoria=get_text(row[1]),
+                subcategoria=get_subcat(row[2]),
+                concepto=get_text(row[3]),
+                importe=row[6],
+                saldo=row[7]
+            )
+            arr.append(m)
+        yield from reversed(arr)
+
+    @cache
     def is_interno(self):
-        c = self.concepto
-
         if self.subcategoria == "Transacción entre cuentas de ahorro":
             return True
-        if c in ("Traspaso recibido Cuenta Nómina",):
+        if self.concepto in ("Traspaso recibido Cuenta Nómina",):
             return True
-        if c in ("Traspaso emitido Cuenta Nómina",):
+        if self.concepto in ("Traspaso emitido Cuenta Nómina",):
             return True
 
         return False
+
+    def replace(self, **kwargs):
+        return Movimiento(**{
+            **self._asdict(),
+            **kwargs
+        })
