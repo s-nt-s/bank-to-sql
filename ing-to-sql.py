@@ -7,7 +7,7 @@ from pathlib import Path
 from core.movimiento import Movimiento
 import sys
 from core.dbing import DBIng
-from core.reader import Reader
+from core.movimientos import Movimientos
 
 re_year = re.compile(r"^_?((20|19)\d\d).*")
 re_sp = re.compile(r"\s+")
@@ -59,7 +59,7 @@ if __name__ == "__main__":
     if (False, False) == (isfile(args.xls), isdir(args.xls)):
         sys.exit("No es un fichero ni un directorio --xls %s" % args.xls)
 
-    reader = Reader(
+    reader = Movimientos(
         source=args.xls,
         year=args.ini
     )
@@ -70,6 +70,6 @@ if __name__ == "__main__":
     fix_sql = join(roo_path, "sql/fix")
 
     with DBIng(args.out, reload=True) as db:
-        db.populate(reader.historia)
+        db.populate(reader)
         for sql in Path(fix_sql).rglob('*.sql'):
             db.execute(sql)

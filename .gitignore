@@ -3,6 +3,7 @@ schemaspy/*.jar
 *.db
 *.sqlite
 .idea
+notas.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

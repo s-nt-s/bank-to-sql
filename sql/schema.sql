@@ -9,7 +9,7 @@ CREATE TABLE categoria (
 CREATE TABLE subcategoria (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   txt TEXT NOT NULL UNIQUE,
-  categoria INTEGER,
+  categoria INTEGER NOT NULL DEFAULT -1,
   FOREIGN KEY(categoria) REFERENCES categoria(id)
 );
 
@@ -17,24 +17,14 @@ CREATE TABLE movimiento (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   cuenta INTEGER,
   fecha DATE,
-  subcategoria INTEGER,
+  subcategoria INTEGER NOT NULL DEFAULT -1,
   concepto TEXT,
   importe NUMBER,
-  saldo NUMBER,
   FOREIGN KEY(cuenta) REFERENCES cuenta(id),
   FOREIGN KEY(subcategoria) REFERENCES subcategoria(id)
 );
 
-CREATE TABLE tipo (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  txt TEXT
-);
-
-CREATE TABLE tipado (
-  movimiento INTEGER NOT NULL,
-  tipo INTEGER NOT NULL,
-  FOREIGN KEY(movimiento) REFERENCES movimiento(id),
-  FOREIGN KEY(tipo) REFERENCES tipo(id)
-)
-
-
+insert into categoria (id, txt) values
+(-1, 'Sin categoria');
+insert into subcategoria (id, txt, categoria) values
+(-1, 'Sin subcategoria', -1);

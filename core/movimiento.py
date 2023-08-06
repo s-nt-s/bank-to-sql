@@ -8,6 +8,8 @@ from typing import NamedTuple
 from pathlib import Path
 
 re_sp = re.compile(r"\s+")
+re_deporte = re.compile(r"\b(CENTRO DEPORTIVO|AYTO .* DEPORTES)\b", re.IGNORECASE)
+re_telefono = re.compile(r"\bVODAFONE\b", re.IGNORECASE)
 
 
 def get_date(book, s):
@@ -32,6 +34,8 @@ def get_subcat(s):
         return "Farmacia, herbolario y nutrición"
     if s == "Taxis":
         return "Taxi y Carsharing"
+    if s == "Educación":
+        return "Educación, salud y deporte"
     return s
 
 
@@ -43,6 +47,7 @@ class Movimiento(NamedTuple):
     concepto: str
     importe: float
     saldo: float
+    interno: bool = False
 
     @staticmethod
     def reader(file: str | Path):
@@ -66,15 +71,27 @@ class Movimiento(NamedTuple):
         yield from reversed(arr)
 
     @cache
-    def is_interno(self):
+    def maybe_interno(self):
         if self.subcategoria == "Transacción entre cuentas de ahorro":
             return True
         if self.concepto in ("Traspaso recibido Cuenta Nómina",):
             return True
         if self.concepto in ("Traspaso emitido Cuenta Nómina",):
             return True
-
         return False
+
+    def is_traspaso(self, m: "Movimiento"):
+        if not self.maybe_interno:
+            return False
+        if not m.maybe_interno:
+            return False
+        if self.cuenta == m.cuenta:
+            return False
+        if self.importe != -m.importe:
+            return False
+        if self.fecha != m.fecha:
+            return False
+        return True
 
     def replace(self, **kwargs):
         return Movimiento(**{

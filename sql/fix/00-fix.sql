@@ -3,7 +3,7 @@ UPDATE movimiento SET
         select id from subcategoria where txt = 'Transferencias'
     )
 where (
-    subcategoria is null AND
+    subcategoria = -1 AND
     concepto like 'Transferencia emitida a %'
 )
 ;

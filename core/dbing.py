@@ -1,13 +1,8 @@
 from .dblite import DBLite, EmptyInsertException
 from os.path import dirname, realpath, join
-from .movimiento import Movimiento
+from .movimientos import Movimientos
 
 roo_path = join(dirname(realpath(__file__)), '..')
-
-
-def _tp(arr):
-    arr = set(i for i in arr if i is not None)
-    return tuple(sorted(arr))
 
 
 class DBIng(DBLite):
@@ -30,7 +25,8 @@ class DBIng(DBLite):
             return None
         if self.id_txt[table].get(txt) is None:
             super().insert(table, txt=txt, **kwargs)
-            self.id_txt[table][txt] = self.one(f"select id from {table} where txt=?", txt)
+            id = self.one(f"select id from {table} where txt=?", txt)
+            self.id_txt[table][txt] = id
         return self.id_txt[table][txt]
 
     def insert(self, table, **kwargs):
@@ -45,12 +41,13 @@ class DBIng(DBLite):
         except EmptyInsertException:
             return
         if idTxt:
-            self.id_txt[table][idTxt] = self.one(f"select id from {table} where txt=?", idTxt)
+            id = self.one(f"select id from {table} where txt=?", idTxt)
+            self.id_txt[table][idTxt] = id
 
-    def populate(self, movs: tuple[Movimiento]):
-        for c in _tp(m.categoria for m in movs):
+    def populate(self, reader: Movimientos):
+        for c, sub in reader.iter_categorias():
             self.insert("categoria", txt=c)
-            for s in _tp(m.subcategoria for m in movs if m.categoria==c):
+            for s in sub:
                 self.insert("subcategoria", txt=s, categoria=c)
-        for m in movs:
+        for m in reader.movimientos:
             self.insert("movimiento", **m._asdict())
