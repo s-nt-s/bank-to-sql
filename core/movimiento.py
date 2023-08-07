@@ -36,6 +36,12 @@ def get_subcat(s):
         return "Taxi y Carsharing"
     if s == "Educación":
         return "Educación, salud y deporte"
+    if s == "Otros ingresos":
+        return "Otros ingresos (otros)"
+    if s == "Hogar":
+        return "Hogar (otros)"
+    if s == "Tren, avión, transporte":
+        return "Billetes de viaje"
     return s
 
 
