@@ -31,7 +31,7 @@ class DBIng(DBLite):
 
     def insert(self, table, **kwargs):
         idTxt = kwargs.get('txt') if table in self.id_txt else None
-        if idTxt and self.id_txt[table].get(idTxt):
+        if idTxt and idTxt in self.id_txt[table]:
             return
         for k, v in list(kwargs.items()):
             if k in self.id_txt and isinstance(v, str):

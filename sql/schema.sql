@@ -25,6 +25,16 @@ CREATE TABLE movimiento (
 );
 
 insert into categoria (id, txt) values
+(0, 'Saldo inicial');
+insert into subcategoria (id, txt, categoria) values
+(0, 'Saldo inicial', 0);
+
+insert into categoria (id, txt) values
 (-1, 'Sin categoria');
 insert into subcategoria (id, txt, categoria) values
 (-1, 'Sin subcategoria', -1);
+
+insert into categoria (id, txt) values
+(-2, 'Transacción entre cuentas');
+insert into subcategoria (id, txt, categoria) values
+(-2, 'Transacción entre cuentas', -2);
