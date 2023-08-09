@@ -71,5 +71,5 @@ if __name__ == "__main__":
 
     with DBIng(args.out, reload=True) as db:
         db.populate(reader)
-        for sql in Path(fix_sql).rglob('*.sql'):
+        for sql in sorted(Path(fix_sql).rglob('*.sql')):
             db.execute(sql)

@@ -1,0 +1,99 @@
+body {
+  font-family: arial,sans serif;
+  font-size: 11pt;
+  margin: 0;
+}
+main {
+  margin: 8px;
+}
+table {
+	margin-top: 14px;
+	border-spacing: 0px;
+	border-collapse: collapse;
+}
+thead {
+	background-color: lightblue;
+}
+td, th {
+	border: 1px solid black;
+	padding-left: 5px;
+	padding-right: 5px;
+}
+table tbody tr:nth-child(even) {
+	background-color: #ddd;
+}
+td > p, th > p {
+	margin-top:7px;
+	margin-bottom:7px;
+}
+td > p:first-child, th > p:first-child  {
+	margin-top:0;
+}
+td > p:last-child, td > p:last-child {
+	margin-bottom:0;
+}
+tr > td:first-child {
+	white-space: nowrap;
+}
+.rg {
+  text-align: right;
+}
+label:not(.free), span.label {
+	display: inline-block;
+	min-width: 7em;
+}
+select, input[type=number] {
+	width: 6em;
+}
+input[type=number] {
+	text-align: right;
+}
+.dosDecimales span.nm.dc0:after {
+  content: ",00"
+}
+.dosDecimales span.nm.dc1:after {
+  content: "0"
+}
+.dosEnteros span.en1:before {
+  content: " "
+}
+header, footer {
+  padding: 1em;
+  clear: both;
+  margin: 0px;
+  color: #fff !important;
+  background-color: #3a3a3a !important;
+}
+footer {
+  margin-top: 16px !important;
+}
+footer p:first-child {
+	margin-top: 0;
+}
+footer p:last-child {
+	margin-bottom: 0;
+}
+header a, footer a {
+  color: inherit;
+}
+fieldset.hidefls > legend {
+	display: none;
+}
+fieldset.hidefls {
+	border: none;
+	padding: 0;
+}
+fieldset.hidefls .firstinfls {
+	margin-top: 0;
+}
+#neto_mes {
+	background-color: gold;
+}
+th img {
+	max-width: 50%;
+	max-height: 50%;
+}
+#sueldo a {
+	text-decoration: none;
+	font-weight: bold;
+}

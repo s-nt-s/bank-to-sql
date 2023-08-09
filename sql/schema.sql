@@ -38,3 +38,17 @@ insert into categoria (id, txt) values
 (-2, 'Transacción entre cuentas');
 insert into subcategoria (id, txt, categoria) values
 (-2, 'Transacción entre cuentas', -2);
+
+create VIEW MOV AS
+select
+  m.id,
+  m.fecha,
+  c.txt categoria,
+  s.txt subcategoria,
+  m.concepto,
+  m.importe
+from
+  movimiento m 
+  join subcategoria s on m.subcategoria=s.id
+  join categoria c on s.categoria=c.id
+;

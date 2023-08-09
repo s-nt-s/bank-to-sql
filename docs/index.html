@@ -1,0 +1,32 @@
+
+<!DOCtype html>
+<html lang="es">
+	<head>
+    <meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Movimientos</title>
+    <link href="rec/main.css" rel="stylesheet" type="text/css"/>
+	<!--script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script-->
+    <script src="rec/js/01-wasm.js"></script>
+    <script src="rec/js/02-SQL.js"></script>
+	<script src="rec/libs/sql.js/1.8.0/sql-wasm.js"></script>
+    <script src="rec/js/99-main.js"></script>
+</head>
+<body>
+	<p id="loading" style="display: none;">Cargando...</p>
+	<main id="main">
+        <label class="button">Cargar base de datos SQLite: <input type="file" id="dbfile"></label>
+		<fieldset id="cat">
+			<legend>Categorias</legend>
+		</fieldset>
+		<fieldset id="sub">
+			<legend>Subcategorias</legend>
+		</fieldset>
+    </main>
+	<footer>
+		<p>
+		Código fuente en <a href="https://github.com/s-nt-s/ing-to-sql">GitHub</a>. Si falla o tienes alguna sugerencia pon un <a href="https://github.com/s-nt-s/ing-to-sql/issues">issue</a>.
+		</p>
+	</footer>
+	</body>
+</html>
