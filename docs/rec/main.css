@@ -97,3 +97,15 @@ th img {
 	text-decoration: none;
 	font-weight: bold;
 }
+
+#cat ul, #cat li {
+	list-style-type: none
+}
+#cat > ul {
+	padding-left: 0;
+}
+#cat code {
+	width: 3em;
+	display: inline-block;
+	text-align: right;
+}

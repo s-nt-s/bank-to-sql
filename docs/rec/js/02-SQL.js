@@ -1,5 +1,5 @@
 class DBLoader {
-    static SQL = null; 
+    static SQL = null;
     static init() {
         // https://gist.github.com/SMUsamaShah/358fba159cb41fe469fc61e7db444c0e
         const wasm_strbuffer = atob(SQLBASE64);
