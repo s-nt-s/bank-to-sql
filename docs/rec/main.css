@@ -108,4 +108,9 @@ th img {
 	width: 3em;
 	display: inline-block;
 	text-align: right;
+	display: none;
+}
+ul {
+	padding-left: 1.5em;
+	margin-left: 0;
 }
