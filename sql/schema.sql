@@ -19,7 +19,7 @@ CREATE TABLE movimiento (
   fecha DATE,
   subcategoria INTEGER NOT NULL DEFAULT -1,
   concepto TEXT,
-  importe NUMBER,
+  importe REAL,
   FOREIGN KEY(cuenta) REFERENCES cuenta(id),
   FOREIGN KEY(subcategoria) REFERENCES subcategoria(id)
 );
