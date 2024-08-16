@@ -5,7 +5,7 @@ from .movimientos import Movimientos
 roo_path = join(dirname(realpath(__file__)), '..')
 
 
-class DBIng(DBLite):
+class DBBank(DBLite):
     def __init__(self, *args, **kvargs):
         super().__init__(*args, **kvargs)
         self.id_txt: dict[str, dict[str, int]] = {}
@@ -46,8 +46,11 @@ class DBIng(DBLite):
 
     def populate(self, reader: Movimientos):
         for c, sub in reader.iter_categorias():
-            self.insert("categoria", txt=c)
+            self.insert("categoria", txt=str(c))
             for s in sub:
-                self.insert("subcategoria", txt=s, categoria=c)
+                self.insert("subcategoria", txt=str(s), categoria=str(c))
         for m in reader.movimientos:
-            self.insert("movimiento", **m._asdict())
+            mov = m._asdict()
+            mov["categoria"] = str(m.get_categoria())
+            mov["subcategoria"] = str(m.subcategoria)
+            self.insert("movimiento", **mov)
