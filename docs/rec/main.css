@@ -152,3 +152,6 @@ ul {
 fieldset {
 	margin-bottom: 16px;
 }
+#cat tr > *:nth-child(3) ~ * {
+	display: none;
+}

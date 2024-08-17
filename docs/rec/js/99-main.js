@@ -90,6 +90,7 @@ function init() {
     $ini.value = ini;
     $fin.value = fin;
     const $cat = $.s("#cat")[0];
+    $.s("#cat tbody").forEach(b=>b.remove());
     const html = [];
     sDB(`
         select id, txt from categoria
@@ -173,10 +174,10 @@ function doChange() {
     }));
     const thead = $.s("#cat thead tr")[0];
     if (thead.getElementsByTagName("th").length==1) thead.insertAdjacentHTML('beforeend', `
-        <th>Media</th>
-        <th>Total</th>
-        <th>Mínimo</th>
-        <th>Máximo</th>
+        <th>Media (€/mes)</th>
+        <th>Total (€)</th>
+        <th>Mínimo (€)</th>
+        <th>Máximo (€)</th>
     `);
     $.s("#cat input").forEach(n => {
         const r = gRanges(n.value.split(/\s+/).map(Number));
@@ -187,7 +188,7 @@ function doChange() {
             <td></td>
             <td></td>
         `);
-        const tds = Array.from(tr.getElementsByTagName("td"));
+        const tds = Array.from(tr.querySelectorAll("th,td"));
         tds.pop().innerHTML = r.max;
         tds.pop().innerHTML = r.min;
         tds.pop().innerHTML = r.total;
