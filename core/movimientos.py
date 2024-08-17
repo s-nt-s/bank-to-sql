@@ -6,6 +6,12 @@ from .movimiento import Movimiento
 from functools import cached_property
 from dataclasses import dataclass
 from datetime import date
+from core.reader import Reader, IsNotForMeException
+from typing import Generator
+import logging
+from .category import SubCategory, Category
+
+logger = logging.getLogger(__name__)
 
 re_year = re.compile(r"^_?((20|19)\d\d).*")
 re_sp = re.compile(r"\s+")
@@ -25,48 +31,29 @@ def safe_sum(*arr) -> float:
     return round(tot, 2)
 
 
+def rglob(path: Path, *ext):
+    for e in ext:
+        yield from path.rglob("*."+e)
+
+
 @dataclass(frozen=True)
 class Movimientos:
     source: str
     year: int
 
-    @staticmethod
-    def set_interno(arr: list[Movimiento]):
-        index: dict[Movimiento, int] = {}
-        dts: dict[date, list[Movimiento]] = {}
-        for i, m in enumerate(arr):
-            if m.maybe_interno:
-                if m.fecha not in dts:
-                    dts[m.fecha] = []
-                dts[m.fecha].append(m)
-                index[m] = i
-        ok: list[Movimiento] = []
-        for movs in dts.values():
-            while len(movs) > 1:
-                m = movs.pop()
-                for x in movs:
-                    if m.is_traspaso(x):
-                        movs.remove(x)
-                        ok.append(m)
-                        ok.append(x)
-        for m in ok:
-            arr[index[m]] = m.replace(
-                categoria="Transacción entre cuentas",
-                subcategoria="Transacción entre cuentas",
-                interno=True
-            )
-
     @cached_property
     def items(self) -> tuple[Movimiento]:
         items: set[Movimiento] = set()
-        index: dict[Movimiento, tuple[int, str]] = {}
+        index: dict[Movimiento, tuple[str, int]] = {}
         for path in self.iter_path():
-            for i, m in enumerate(Movimiento.reader(path)):
+            reader = self.__get_reader(path)
+            if reader is None:
+                continue
+            for i, m in enumerate(reader.read()):
                 items.add(m)
                 if m not in index or index[m][0] > path.name:
                     index[m] = (path.name, i)
         movs = sorted(items, key=lambda m: (m.fecha, index[m]))
-        Movimientos.set_interno(movs)
 
         def s_key(m: Movimiento):
             k = [m.fecha, not m.interno, 0, 0, movs.index(m)]
@@ -77,12 +64,14 @@ class Movimientos:
         movs = sorted(movs, key=s_key)
         return tuple(movs)
 
-    def iter_path(self):
+    def iter_path(self) -> Generator[Path, None, None]:
         if isfile(self.source):
             yield Path(self.source)
         elif isdir(self.source):
+            src = Path(self.source)
             paths = []
-            for path in Path(self.source).rglob('*.xls'):
+            path: Path
+            for path in rglob(src, 'xls', 'xlsx', 'pdf'):
                 m = re_year.match(path.name)
                 if not m:
                     continue
@@ -93,11 +82,19 @@ class Movimientos:
             for _, path in sorted(paths):
                 yield path
 
+    def __get_reader(self, path: Path) -> Reader:
+        for cls in Reader.get_subclasses():
+            try:
+                return cls(path)
+            except IsNotForMeException:
+                continue
+        logger.info(f"KO   {path}")
+        return None
+
     @cached_property
     def inicio(self) -> tuple[Movimiento]:
         arr = []
         done = set()
-        saldo_inicial = "Saldo inicial"
         for m in self.items:
             if m.cuenta in done:
                 continue
@@ -107,9 +104,8 @@ class Movimientos:
                 arr.append(Movimiento(
                     cuenta=m.cuenta,
                     fecha=date(m.fecha.year-1, 12, 31),
-                    categoria=saldo_inicial,
-                    subcategoria=saldo_inicial,
-                    concepto=saldo_inicial,
+                    subcategoria=SubCategory.SALDO_INICIAL,
+                    concepto=str(SubCategory.SALDO_INICIAL),
                     importe=saldo,
                     saldo=saldo
                 ))
@@ -118,19 +114,16 @@ class Movimientos:
     @cached_property
     def movimientos(self) -> tuple[Movimiento]:
         return self.inicio + self.items
-    
-    @cached_property
-    def historia(self) -> tuple[Movimiento]:
-        arr = []
-        saldo = 0
-        for m in self.movimientos:
-            saldo = safe_sum(saldo, m.importe)
-            if not m.interno:
-                arr.append(m.replace(saldo=saldo))
-        return tuple(arr)
 
     def iter_categorias(self):
-        for c in _tp(m.categoria for m in self.movimientos):
-            sub = _tp(m.subcategoria for m in self.movimientos if m.categoria==c)
+        cat: dict[Category, set[SubCategory]] = {}
+        for m in self.movimientos:
+            c = m.get_categoria()
+            if c not in cat:
+                cat[c] = set()
+            cat[c].add(m.subcategoria)
+
+        for c in sorted(cat.keys(), key=lambda c: str(c)):
+            sub = sorted(cat[c], key=lambda s: str(s))
             if len(sub) > 0:
                 yield c, sub

@@ -4,6 +4,18 @@ import logging
 import errno
 from os.path import isfile
 from functools import cache
+from core.filemanager import FM
+
+
+def gW(vals: tuple | set | list):
+    if vals is None:
+        raise ValueError("vals is empty")
+    vals = tuple(sorted(vals))
+    if len(vals) == 0:
+        raise ValueError("vals is empty")
+    if len(vals) == 1:
+        return "="+str(vals[0])
+    return f"in {vals}"
 
 
 def dict_factory(cursor, row):
@@ -70,9 +82,8 @@ class DBLite:
             self.inTransaction = False
 
     def execute(self, sql: str):
-        if isfile(sql):
-            with open(sql, "r") as f:
-                sql = f.read()
+        if FM.exist(sql):
+            sql: str = FM.load(sql)
         try:
             self.con.executescript(sql)
         except sqlite3.OperationalError:
@@ -128,15 +139,6 @@ class DBLite:
             table, ', '.join(keys), ', '.join(prm))
         self.con.execute(sql, vals)
 
-    def _build_select(self, sql: str):
-        sql = sql.strip()
-        if not sql.lower().startswith("select"):
-            field = "*"
-            if "." in sql:
-                sql, field = sql.rsplit(".", 1)
-            sql = "select " + field + " from " + sql
-        return sql
-
     def commit(self):
         self.con.commit()
 
@@ -155,13 +157,16 @@ class DBLite:
         self.con.close()
 
     def select(self, sql: str, *args, row_factory=None, **kwargs):
-        sql = self._build_select(sql)
         self.con.row_factory = row_factory
         cursor = self.con.cursor()
-        if len(args):
-            cursor.execute(sql, args)
-        else:
-            cursor.execute(sql)
+        try:
+            if len(args):
+                cursor.execute(sql, args)
+            else:
+                cursor.execute(sql)
+        except sqlite3.OperationalError:
+            print(sql)
+            raise
         for r in ResultIter(cursor):
             yield r
         cursor.close()
@@ -176,7 +181,6 @@ class DBLite:
         return tuple(arr)
 
     def one(self, sql: str, *args):
-        sql = self._build_select(sql)
         cursor = self.con.cursor()
         if len(args):
             cursor.execute(sql, args)

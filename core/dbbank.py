@@ -1,16 +1,15 @@
-from .dblite import DBLite, EmptyInsertException
-from os.path import dirname, realpath, join
+from .dblite import DBLite, gW, dict_factory, EmptyInsertException
 from .movimientos import Movimientos
+from core.filemanager import FM
+from .category import SubCategory
 
-roo_path = join(dirname(realpath(__file__)), '..')
 
-
-class DBIng(DBLite):
+class DBBank(DBLite):
     def __init__(self, *args, **kvargs):
         super().__init__(*args, **kvargs)
         self.id_txt: dict[str, dict[str, int]] = {}
         if "movimiento" not in self.tables:
-            self.execute(join(roo_path, "sql/schema.sql"))
+            self.execute("sql/schema.sql")
         for table in self.tables:
             if self.is_id_table(table):
                 self.id_txt[table] = {}
@@ -46,8 +45,31 @@ class DBIng(DBLite):
 
     def populate(self, reader: Movimientos):
         for c, sub in reader.iter_categorias():
-            self.insert("categoria", txt=c)
+            self.insert("categoria", txt=str(c))
             for s in sub:
-                self.insert("subcategoria", txt=s, categoria=c)
+                self.insert("subcategoria", txt=str(s), categoria=str(c))
         for m in reader.movimientos:
-            self.insert("movimiento", **m._asdict())
+            mov = m._asdict()
+            mov["categoria"] = str(m.get_categoria())
+            mov["subcategoria"] = str(m.subcategoria)
+            self.insert("movimiento", **mov)
+
+        self.set_traspasos_entre_cuentas()
+
+    def set_traspasos_entre_cuentas(self):
+        updt = set()
+        subcat = str(SubCategory.TRANSACCION_CUENTAS)
+        sql = FM.load("sql/traspasos_entre_cuentas.sql")
+        for r in self.select(sql, row_factory=dict_factory):
+            if r['s_sub'] != subcat:
+                updt.add(r["salida"])
+            if r['e_sub'] != subcat:
+                updt.add(r["entrada"])
+        if len(updt) == 0:
+            return
+        idsub = self.get_id_subcat(SubCategory.TRANSACCION_CUENTAS)
+        self.execute(f"UPDATE movimiento SET subcategoria = {idsub} where id "+gW(updt))
+
+    def get_id_subcat(self, sub: SubCategory):
+        self.get_id_from_txt("categoria", str(sub.parent()))
+        return self.get_id_from_txt("subcategoria", str(sub))
