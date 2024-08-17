@@ -205,6 +205,12 @@ class FileManager:
 
         return load_fl(file, *args, **kwargs)
 
+    def safe_load(self, file: Union[Path, str], *args, **kwargs):
+        try:
+            return self.load(file, *args, **kwargs)
+        except Exception:
+            return None
+
     def dump(self, file: Union[Path, str], obj, *args, **kwargs):
         """
         Guarda un fichero en función de su extension

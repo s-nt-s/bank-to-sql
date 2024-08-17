@@ -27,6 +27,12 @@ def _get_subcat(c: str, s: str, concepto: str):
         return SubCategory.ABONO_INTERESES
     if s == "Pagos impuestos":
         return SubCategory.IMPUESTOS_OTROS
+    if s == "Belleza y perfumería":
+        return SubCategory.BELLEZA_PELUQUERIA_PERFUMERIA
+    if s == "Otras inversiones":
+        return SubCategory.OTRAS_INVERSIONES
+    if s == "Libros, música y videojuegos":
+        return SubCategory.LIBROS_MUSICA_JUEGOS
     if concepto in ('Traspaso emitido Cuenta Nómina', 'Traspaso recibido Cuenta Nómina'):
         return SubCategory.TRANSACCION_CUENTAS
     sub = SubCategory.find(s)

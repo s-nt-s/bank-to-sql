@@ -4,7 +4,10 @@ body {
   margin: 0;
 }
 main {
-  margin: 8px;
+	margin: auto;
+	width: fit-content;
+  block-size: fit-content;
+  padding: 0px 1em 0px 1em;
 }
 table {
 	margin-top: 14px;
@@ -113,4 +116,39 @@ th img {
 ul {
 	padding-left: 1.5em;
 	margin-left: 0;
+}
+
+#cat tbody > tr > td {
+	text-align: right;
+	font-family: monospace;
+}
+#cat tbody tr > *:first-child {
+	text-align: left !important;
+}
+#cat tbody tr.sub > td:first-child {
+	padding-left: 1.5em;
+}
+#cat tbody > tr:first-child {
+	background-color: gold;
+}
+#res dl {
+    display: grid;
+    grid-template-columns: max-content max-content;
+    gap: 10px;
+}
+#res dt {
+	grid-column: 1;
+	font-weight: bold;
+}
+#res dt::after {
+	content: ":"
+}
+#res dd {
+    grid-column: 2;
+    margin: 0;
+	text-align: right;
+	font-family: monospace;
+}
+fieldset {
+	margin-bottom: 16px;
 }

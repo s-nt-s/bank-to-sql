@@ -55,6 +55,7 @@ class DBBank(DBLite):
             self.insert("movimiento", **mov)
 
         self.set_traspasos_entre_cuentas()
+        self.update_devoluciones()
 
     def set_traspasos_entre_cuentas(self):
         updt = set()
@@ -73,3 +74,40 @@ class DBBank(DBLite):
     def get_id_subcat(self, sub: SubCategory):
         self.get_id_from_txt("categoria", str(sub.parent()))
         return self.get_id_from_txt("subcategoria", str(sub))
+
+    def update_devoluciones(self):
+        for devol in self.iter_devoluciones():
+            importe = sum([i for f, i in devol])
+            if importe > 0:
+                raise ValueError(f"Devolución con importe positivo: {devol} <- {devol}")
+            if importe > 0:
+                x = devol.pop(0)
+                self.execute(f"UPDATE movimiento SET importe = {importe} WHERE (fecha = '{x[0]}' AND importe = {x[1]})")
+
+            self.execute("DELETE FROM movimiento WHERE " + " OR ".join(map(
+                lambda x: f"(fecha = '{x[0]}' AND importe = {x[1]})",
+                devol
+            )))
+
+
+    def iter_devoluciones(self):
+        devol = []
+        txt: str = (FM.safe_load("sql/devoluciones.txt") or "").strip()
+        for ln in txt.split("\n"):
+            ln = ln.strip()
+            if len(ln) == 0 or ln[0] == "#":
+                continue
+            spl = ln.split()
+            if len(spl) < 2:
+                continue
+            fecha, s_importe = spl[:2]
+            importe = float(s_importe)
+            if importe >= 0 and len(devol) == 0:
+                continue
+            if importe < 0:
+                if len(devol) > 1:
+                    yield devol
+                devol = []
+            devol.append((fecha, importe))
+        if len(devol) > 1:
+            yield devol

@@ -13,20 +13,23 @@
 </head>
 <body>
 	<main id="main">
-        <label class="button">Cargar base de datos SQLite: <input type="file" id="dbfile"></label>
-		<fieldset id="res">
-			<legend>Resultado</legend>
-			<ul></ul>
-		</fieldset>
+		<p>
+        	<label class="button">Cargar base de datos SQLite: <input type="file" id="dbfile"></label>
+		</p>
 		<fieldset>
 			<legend>Rango</legend>
 			<label for="ini">Fecha inicio:</label> <input type="date" id="ini"/><br/>
 			<label for="fin">Fecha fin:</label> <input type="date" id="fin"/>
 		</fieldset>
-		<fieldset id="cat">
-			<legend>Categorias</legend>
-			<ul></ul>
+		<fieldset id="res" style="display: none">
+			<legend>Resumen</legend>
+			<dl></dl>
 		</fieldset>
+		<table id="cat" style="display: none">
+			<thead>
+				<th>Categoría</th>
+			</thead>
+		</table>
     </main>
 	<footer>
 		<p>

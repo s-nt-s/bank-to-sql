@@ -11,7 +11,6 @@ class Movimiento(NamedTuple):
     concepto: str
     importe: float
     saldo: float
-    interno: bool = False
 
     @cache
     def get_categoria(self):

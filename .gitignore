@@ -1,5 +1,7 @@
 sql/fix/*ig*.sql
+devoluciones.txt
 schemaspy/*.jar
+sql/debug/
 *.db
 *.sqlite
 .idea

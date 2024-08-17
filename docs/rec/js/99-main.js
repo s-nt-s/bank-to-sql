@@ -49,6 +49,35 @@ document.addEventListener("DOMContentLoaded", function(event) {
     })
 });
 
+function gRanges(subcat) {
+    if (Array.isArray(subcat)) {
+        if (subcat.length==0) return null;
+        if (subcat.length==1) subcat=subcat[0];
+    };
+    const ini = $.i("ini").value;
+    const fin = $.i("fin").value;
+    const m = monthDiff(ini, fin);
+    const where = Array.isArray(subcat)?`in (${subcat.join(', ')})`:`=${subcat}`;
+    const [mn, mx, tt] = sDB(`
+    select 
+        min(importe), 
+        max(importe),
+        sum(importe)
+    from
+        movimiento
+    where
+        fecha>='${ini}' and
+        fecha<='${fin}' and
+        subcategoria ${where}
+    `)[0];
+    return {
+        "min": Math.floor(mn),
+        "max": Math.ceil(mx),
+        "total": Math.round(tt),
+        "media": Math.round(tt/m)
+    };
+}
+
 function init() {
     const ini = sDB("select min(fecha) from MOV")[0];
     const fin = sDB("select max(fecha) from MOV")[0];
@@ -60,7 +89,7 @@ function init() {
     $fin.setAttribute("max", fin);
     $ini.value = ini;
     $fin.value = fin;
-    const $cat = $.s("#cat > ul")[0];
+    const $cat = $.s("#cat")[0];
     const html = [];
     sDB(`
         select id, txt from categoria
@@ -78,41 +107,47 @@ function init() {
         `)[0];
         if (countcat==0) return;
         const sub = sDB(`
-            select id, txt from subcategoria where categoria=${id}
-            order by txt
+            select
+                id,
+                case
+                    when txt like '%(otros)%' then 'Otros'
+                    else txt
+                end txt
+            from subcategoria where categoria=${id}
+            order by case
+                when txt like '%(otros)%' then 1
+                else 0
+            end, txt
         `).map(([sid, stxt])=>{
             let count = sDB("select count(*) from movimiento where subcategoria="+sid)[0];
             return [sid, stxt, count];
         }).filter(([sid, stxt, count]) => count>0);
         const ids = sub.map(([sid, stxt, count])=>sid);
+        html.push("<tbody>")
         if (ids.length>1) {
             html.push(`
-                <li>
-                    <code>${countcat}</code>
-                    <input checked type="checkbox" value="${ids.join(" ")}" id="cat_${index}"/>
-                    <label for="cat_${index}">${txt}</label> 
+                <tr class="cat">
+                    <th>
+                        <input checked type="checkbox" value="${ids.join(" ")}" id="cat_${index}"/><label for="cat_${index}">${txt}</label> 
+                    </th>
+                </tr>
             `);
-            html.push(`<ul>`);
         }
         sub.forEach(([sid, stxt, count]) => {
+            const tag = ids.length==1?'th':'td';
             html.push(`
-            <li>
-                <code>${count}</code>
-                <input checked type="checkbox" value="${sid}" id="sub_${sid}"/>
-                <label for="sub_${sid}">${stxt}</label> 
-            </li>
+                <tr class="sub">
+                    <${tag}>
+                        <input checked type="checkbox" value="${sid}" id="sub_${sid}"/><label for="sub_${sid}">${stxt}</label>
+                    </${tag}>
+                </tr>
             `);
         });
-
-        if (ids.length>1) {
-            html.push(`</ul>`);
-            html.push(`</li>`);
-        }
+        html.push("</tbody>")
     });
-    $cat.innerHTML = html.join("\n");
-    $.s("#cat input").forEach(n => {
-        if (n.parentNode.getElementsByTagName("li").length==0) return;
-        const childs = n.value.split(/\s+/).flatMap(id => $.s(`#cat input[value='${id}']`));
+    $cat.insertAdjacentHTML('beforeend', html.join("\n"));
+    $.s("#cat input[id^=cat_]").forEach(n => {
+        const childs = n.value.split(/\s+/).flatMap(id => $.s(`#sub_${id}`));
         const listener = () => {
             childs.forEach(x => {
                 x.disabled = n.checked;
@@ -136,6 +171,29 @@ function doChange() {
         const val = n.value.split(/\s+/);
         return val.map(v=>Number(v));
     }));
+    const thead = $.s("#cat thead tr")[0];
+    if (thead.getElementsByTagName("th").length==1) thead.insertAdjacentHTML('beforeend', `
+        <th>Media</th>
+        <th>Total</th>
+        <th>Mínimo</th>
+        <th>Máximo</th>
+    `);
+    $.s("#cat input").forEach(n => {
+        const r = gRanges(n.value.split(/\s+/).map(Number));
+        const tr = n.closest("tr");
+        if (tr.getElementsByTagName("td").length<=2) tr.insertAdjacentHTML('beforeend', `
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+        `);
+        const tds = Array.from(tr.getElementsByTagName("td"));
+        tds.pop().innerHTML = r.max;
+        tds.pop().innerHTML = r.min;
+        tds.pop().innerHTML = r.total;
+        tds.pop().innerHTML = r.media;
+    });
+    $.s("#cat, #res").forEach(n=>n.style.display="");
     if (ids.length==0) return;
     const [gastos, ingreosos] = sDB(`
         select
@@ -156,11 +214,11 @@ function doChange() {
     `)[0];
 
     const m = monthDiff(ini, fin);
-    const $res = $.s("#res > ul")[0];
+    const $res = $.s("#res > dl")[0];
     $res.innerHTML=`
-        <li><strong>Meses</strong>: ${m}</li>
-        <li><strong>Ingresos</strong>: ${Math.round(ingreosos/m)} €/mes</li>
-        <li><strong>Gastos</strong>: ${Math.round(gastos/m)} €/mes</li>
-        <li><strong>Ahorro</strong>: ${Math.round((ingreosos-gastos)/m)} €/mes</li>
+        <dt>Meses</dt><dd>${m}</dd>
+        <dt>Ingresos</dt><dd>${Math.round(ingreosos/m)} €/mes</dd>
+        <dt>Gastos</dt><dd>${Math.round(gastos/m)} €/mes</dd>
+        <dt>Ahorro</dt><dd>${Math.round((ingreosos-gastos)/m)} €/mes</dd>
     `;
 }

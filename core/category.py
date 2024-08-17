@@ -7,7 +7,6 @@ class SubCategory(Enum):
     SUPERMERCADOS_ALIMENTACION = "Supermercados y alimentación"
 
     # Compras
-    BELLEZA_PERFUMERIA = "Belleza y perfumería"
     BELLEZA_PELUQUERIA_PERFUMERIA = "Belleza, peluquería y perfumería"
     COMPRAS_OTROS = "Compras (otros)"
     REGALOS_JUGUETES = "Regalos y juguetes"
@@ -44,7 +43,7 @@ class SubCategory(Enum):
     # Inversión
     ABONO_INTERESES = "Abono de intereses"
     FONDOS = "Fondos de inversión"
-    OTRAS_INVERSIONES = "Otras inversiones"
+    OTRAS_INVERSIONES = "Inversión (otros)"
 
     # Transferencia
     TRANSFERENCIA_BANCARIA = "Transferencia recibida"
@@ -59,7 +58,6 @@ class SubCategory(Enum):
     CINE_TEATRO_ESPECTACULOS = "Cine, teatro y espectáculos"
     HOTEL_ALOJAMIENTO = "Hotel y alojamiento"
     LIBROS_MUSICA_JUEGOS = "Libros, música y juegos"
-    LIBROS_MUSICA_VIDEOJUEGOS = "Libros, música y videojuegos"
     OCIO_VIAJES_OTROS = "Ocio y viajes (otros)"
 
     # Otros gastos
@@ -121,7 +119,6 @@ class Category(Enum):
 
     COMPRAS = mkCat(
         "Compras",
-        SubCategory.BELLEZA_PERFUMERIA,
         SubCategory.BELLEZA_PELUQUERIA_PERFUMERIA,
         SubCategory.COMPRAS_OTROS,
         SubCategory.REGALOS_JUGUETES,
@@ -187,7 +184,6 @@ class Category(Enum):
         SubCategory.CINE_TEATRO_ESPECTACULOS,
         SubCategory.HOTEL_ALOJAMIENTO,
         SubCategory.LIBROS_MUSICA_JUEGOS,
-        SubCategory.LIBROS_MUSICA_VIDEOJUEGOS,
         SubCategory.OCIO_VIAJES_OTROS
     )
 

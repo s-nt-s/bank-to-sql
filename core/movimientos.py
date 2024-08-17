@@ -50,16 +50,15 @@ class Movimientos:
             if reader is None:
                 continue
             for i, m in enumerate(reader.read()):
+                if m.importe == 0:
+                    continue
                 items.add(m)
                 if m not in index or index[m][0] > path.name:
                     index[m] = (path.name, i)
         movs = sorted(items, key=lambda m: (m.fecha, index[m]))
 
         def s_key(m: Movimiento):
-            k = [m.fecha, not m.interno, 0, 0, movs.index(m)]
-            if m.interno:
-                k[2] = abs(m.importe)
-                k[3] = m.importe
+            k = [m.fecha, movs.index(m)]
             return tuple(k)
         movs = sorted(movs, key=s_key)
         return tuple(movs)
