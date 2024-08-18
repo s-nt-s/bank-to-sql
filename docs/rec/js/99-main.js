@@ -242,7 +242,7 @@ function doChange() {
         if (m<=18) return "mes";
         const _y = "substr(mes, 1, 4)";
         const _m = "(cast(substr(mes, 6, 2) as integer) - 1)"
-        const _to = (l, n) => `${_y} || '-${l}' || (${_m} / ${n} + 1)`;
+        const _to = (l, n) => `${_y} || '-${l}' || ((${_m} / ${n}) + 1)`;
         if (m<=(3*12)) return _to('T', 3);
         if (m<=(4*12)) return _to('C', 4);
         if (m<=(6*12)) return _to('S', 6);
