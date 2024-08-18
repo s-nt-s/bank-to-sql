@@ -174,6 +174,16 @@ function init() {
     doChange();
 }
 
+function frmtNum(n, maxdec) {
+    if (maxdec == null) maxdec = 0;
+    const opt = {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: maxdec,
+        useGrouping: 'always'
+    }
+    return new Intl.NumberFormat('es-ES', opt).format(n);
+}
+
 function doChange() {
     doLoading(true);
     const ini = $.i("ini").value;
@@ -199,10 +209,10 @@ function doChange() {
             <td></td>
         `);
         const tds = Array.from(tr.querySelectorAll("th,td"));
-        tds.pop().innerHTML = r.max;
-        tds.pop().innerHTML = r.min;
-        tds.pop().innerHTML = r.total;
-        tds.pop().innerHTML = r.media;
+        tds.pop().innerHTML = frmtNum(r.max);
+        tds.pop().innerHTML = frmtNum(r.min);
+        tds.pop().innerHTML = frmtNum(r.total);
+        tds.pop().innerHTML = frmtNum(r.media);
     });
     if (ids.length==0) return;
     const select = `
@@ -230,12 +240,14 @@ function doChange() {
     `)[0];
 
     const m = monthDiff(ini, fin);
+    const y = Math.round((m / 12)*10)/10;
     const $res = $.s("#res > dl")[0];
     $res.innerHTML=`
-        <dt>Tiempo</dt><dd>${m} mes${m==1?'':'es'}</dd>
-        <dt>Ingreso</dt><dd>${Math.round(ing/m)} €/mes</dd>
-        <dt>Gastos</dt><dd>${Math.round(gst/m)} €/mes</dd>
-        <dt>Ahorro</dt><dd>${Math.round((ing-gst)/m)} €/mes</dd><dd>${Math.round((1-(gst/ing))*100)} %</dd>
+        <dt>Tiempo</dt><dd>${m} mes${m==1?'':'es'}</dd><dd>${frmtNum(y, 1)} año${y==1?'':'s'}</dd>
+        <dt>Ingreso</dt><dd>${frmtNum(ing/m)} €/mes</dd><dd>${frmtNum(ing/y)} €/año</dd>
+        <dt>Gastos</dt><dd>${frmtNum(gst/m)} €/mes</dd><dd>${frmtNum(gst/y)} €/año</dd>
+        <dt>Ahorro</dt><dd>${frmtNum((ing-gst)/m)} €/mes</dd><dd>${frmtNum((ing-gst)/y)} €/año</dd>
+                       <dd style="grid-column: 2;">${frmtNum((1-(gst/ing))*100)} %</dd>
     `;
 
     const key = (()=>{
@@ -265,6 +277,23 @@ function doChange() {
     const gastos = dataset.map(i=>Math.floor(i[1]));
     const ingres = dataset.map(i=>Math.ceil(i[2]));
     const ahorro = dataset.map(i=>Math.round(i[2]-i[1]));
+    const mkDate = (obj) => {
+        const color = obj.color;
+        const dflt = {
+            fill: true,
+            pointHoverRadius: 3,
+            pointRadius: 0
+        }
+        if (color != null) {
+            delete obj['color'];
+            dflt.borderColor = DFL_RGB_COLOR[color].borderColor;
+            dflt.backgroundColor = DFL_RGB_COLOR[color].backgroundColor;
+        }
+        Object.keys(dflt).forEach(key => {
+            if (!(key in obj)) obj[key] = dflt[key];
+        });
+        return obj;
+    }
 
     const data = {
         labels: labels,
@@ -272,25 +301,20 @@ function doChange() {
             {
                 label: "Gastos",
                 data: gastos,
-                fill: true,
-                borderColor: DFL_RGB_COLOR['red'].borderColor,
-                backgroundColor: DFL_RGB_COLOR['red'].backgroundColor,
+                color: "red"
             },
             {
                 label: "Ingresos",
                 data: ingres,
-                fill: true,
-                borderColor: DFL_RGB_COLOR['blue'].borderColor,
-                backgroundColor: DFL_RGB_COLOR['blue'].backgroundColor,
+                color: "blue"
             },
             {
                 label: "Ahorro",
                 data: ahorro,
-                fill: false,
-                borderColor: DFL_RGB_COLOR['green'].borderColor,
-                backgroundColor: DFL_RGB_COLOR['green'].backgroundColor,
+                color: "green",
+                fill: false
             },
-        ]
+        ].map(mkDate)
     }
     doLoading(false);
     setChart("chart", data);
