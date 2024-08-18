@@ -52,3 +52,45 @@ from
   join subcategoria s on m.subcategoria=s.id
   join categoria c on s.categoria=c.id
 ;
+
+create VIEW RESUMEN_DIARIO as
+select
+  fecha,
+  subcategoria,
+  concepto,
+  sum(importe) importe
+from
+  movimiento
+group by
+  fecha,
+  subcategoria,
+  concepto
+;
+
+create VIEW RESUMEN_MENSUAL as
+select
+  substr(fecha, 1, 7) mes,
+  subcategoria,
+  concepto,
+  sum(importe) importe
+from
+  movimiento
+group by
+  substr(fecha, 1, 7),
+  subcategoria,
+  concepto
+;
+
+create VIEW RESUMEN_ANUAL as
+select
+  substr(fecha, 1, 4) anio,
+  subcategoria,
+  concepto,
+  sum(importe) importe
+from
+  movimiento
+group by
+  substr(fecha, 1, 7),
+  subcategoria,
+  concepto
+;

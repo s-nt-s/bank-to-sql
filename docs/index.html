@@ -6,8 +6,10 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Movimientos</title>
     <link href="rec/main.css" rel="stylesheet" type="text/css"/>
+	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <script src="rec/js/01-wasm.js"></script>
     <script src="rec/js/02-SQL.js"></script>
+    <script src="rec/js/03-chart.js"></script>
 	<script src="rec/libs/sql.js/1.8.0/sql-wasm.js"></script>
     <script src="rec/js/99-main.js"></script>
 </head>
@@ -18,14 +20,15 @@
 		</p>
 		<fieldset>
 			<legend>Rango</legend>
-			<label for="ini">Fecha inicio:</label> <input type="date" id="ini"/><br/>
-			<label for="fin">Fecha fin:</label> <input type="date" id="fin"/>
+			<label for="ini">Fecha inicio:</label> <input type="month" id="ini" placeholder="YYYY-MM"/><br/>
+			<label for="fin">Fecha fin:</label> <input type="month" id="fin" placeholder="YYYY-MM"/>
 		</fieldset>
-		<fieldset id="res" style="display: none">
+		<fieldset id="res" class="hideInLoadding" style="display: none;">
 			<legend>Resumen</legend>
 			<dl></dl>
 		</fieldset>
-		<table id="cat" style="display: none">
+		<div id="chart" class="hideInLoadding" style="display: none;"></div>
+		<table id="cat" class="hideInLoadding" style="display: none;">
 			<thead>
 				<th>Categoría</th>
 			</thead>

@@ -155,3 +155,9 @@ fieldset {
 #cat tr > *:nth-child(3) ~ * {
 	display: none;
 }
+
+#chart canvas {
+	margin-top: 16px;
+  margin-bottom: 16px;
+  max-width: 800px;
+}

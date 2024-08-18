@@ -14,27 +14,34 @@ const $ = {
 const uniq = (arr) => Array.from(new Set(arr)).sort();
 
 function monthDiff(d1, d2) {
-    if (typeof d1 === "string") d1 = new Date(d1);
-    if (typeof d2 === "string") d2 = new Date(d2);
-    let month = (d2.getFullYear() - d1.getFullYear())*12;
-    month -= d1.getMonth();
-    month += d2.getMonth();
-    let days = d2.getDate() - d1.getDate();
-    if (days>15) month++;
+    const to_tp = (d) => d.trim().split()[0].split("-").map(Number);
+    const tp1 = to_tp(d1);
+    const tp2 = to_tp(d2);
+    const lng = Math.min(tp1.length, tp2.length)
+    let month = (tp2[0]-tp1[0])*12;
+    month -= tp1[1];
+    month += tp2[1];
+    if (lng == 2) {
+        month += 1;
+    }
+    if (lng > 2) {
+        const days = tp2[2] - tp1[2];
+        if (days>15) month++;
+    }
     return month;
 }
 
 function doLoading(b) {
     if (b !== false) b = true;
-    document.body.style.display=(b?'none':'');
+    $.s(".hideInLoadding").forEach(n=>n.style.display=(b?'none':''));
 }
 
 function sDB(select) {
-    console.log(select);
+    console.debug(select);
     const r = DB.exec(select);
     let vals =  r[0].values;
     if (vals.length>0 && vals[0].length==1) vals = vals.map(x=>x[0]);
-    console.log(vals);
+    console.debug(vals);
     return vals;
 }
 
@@ -64,10 +71,10 @@ function gRanges(subcat) {
         max(importe),
         sum(importe)
     from
-        movimiento
+        RESUMEN_MENSUAL
     where
-        fecha>='${ini}' and
-        fecha<='${fin}' and
+        mes>='${ini}' and
+        mes<='${fin}' and
         subcategoria ${where}
     `)[0];
     return {
@@ -79,8 +86,8 @@ function gRanges(subcat) {
 }
 
 function init() {
-    const ini = sDB("select min(fecha) from MOV")[0];
-    const fin = sDB("select max(fecha) from MOV")[0];
+    const ini = sDB("select min(mes) from RESUMEN_MENSUAL")[0];
+    const fin = sDB("select max(mes) from RESUMEN_MENSUAL")[0];
     const $ini = $.c("ini");
     const $fin = $.c("fin");
     $ini.setAttribute("min", ini);
@@ -101,7 +108,7 @@ function init() {
             select 
                 count(*)
             from
-                movimiento m join subcategoria s on
+                RESUMEN_MENSUAL m join subcategoria s on
                     m.subcategoria=s.id
             where
                 s.categoria=${id}
@@ -120,7 +127,7 @@ function init() {
                 else 0
             end, txt
         `).map(([sid, stxt])=>{
-            let count = sDB("select count(*) from movimiento where subcategoria="+sid)[0];
+            let count = sDB("select count(*) from RESUMEN_MENSUAL where subcategoria="+sid)[0];
             return [sid, stxt, count];
         }).filter(([sid, stxt, count]) => count>0);
         const ids = sub.map(([sid, stxt, count])=>sid);
@@ -166,6 +173,7 @@ function init() {
 }
 
 function doChange() {
+    doLoading(true);
     const ini = $.i("ini").value;
     const fin = $.i("fin").value;
     const ids = uniq($.s("#cat input:checked").flatMap(n => {
@@ -194,24 +202,29 @@ function doChange() {
         tds.pop().innerHTML = r.total;
         tds.pop().innerHTML = r.media;
     });
-    $.s("#cat, #res").forEach(n=>n.style.display="");
     if (ids.length==0) return;
+    const select = `
+        -sum(case
+            when importe<0 then importe
+            else 0
+        end) gastos,
+        sum(case
+            when importe>0 then importe
+            else 0
+        end) ingresos
+    `.trim()
+    const where = `
+            subcategoria in ('NaN', ${ids.join(", ")}) and
+            mes>='${ini}' and 
+            mes<='${fin}'
+    `.trim();
     const [gastos, ingreosos] = sDB(`
         select
-            -sum(case
-                when importe<0 then importe
-                else 0
-            end) gastos,
-            sum(case
-                when importe>0 then importe
-                else 0
-            end) ingresos
+            ${select}
         from
-            movimiento
+            RESUMEN_MENSUAL
         where
-            subcategoria in ('NaN', ${ids.join(", ")}) and
-            fecha>='${ini}' and 
-            fecha<='${fin}'
+            ${where}
     `)[0];
 
     const m = monthDiff(ini, fin);
@@ -222,4 +235,45 @@ function doChange() {
         <dt>Gastos</dt><dd>${Math.round(gastos/m)} €/mes</dd>
         <dt>Ahorro</dt><dd>${Math.round((ingreosos-gastos)/m)} €/mes</dd>
     `;
+
+    const dataset = sDB(`
+        select
+            mes,
+            ${select}
+        from
+            RESUMEN_MENSUAL
+        where
+            ${where}
+        group by
+            mes
+    `);
+
+    const data = {
+        labels: dataset.map(i=>i[0]),
+        datasets: [
+            {
+                label: "Gastos",
+                data: dataset.map(i=>Math.floor(i[1])),
+                fill: true,
+                borderColor: DFL_RGB_COLOR['red'].borderColor,
+                backgroundColor: DFL_RGB_COLOR['red'].backgroundColor,
+            },
+            {
+                label: "Ingresos",
+                data: dataset.map(i=>Math.ceil(i[2])),
+                fill: true,
+                borderColor: DFL_RGB_COLOR['blue'].borderColor,
+                backgroundColor: DFL_RGB_COLOR['blue'].backgroundColor,
+            },
+            {
+                label: "Ahorro",
+                data: dataset.map(i=>Math.round(i[2]-i[1])),
+                fill: true,
+                borderColor: DFL_RGB_COLOR['green'].borderColor,
+                backgroundColor: DFL_RGB_COLOR['green'].backgroundColor,
+            },
+        ]
+    }
+    doLoading(false);
+    setChart("chart", data);
 }
