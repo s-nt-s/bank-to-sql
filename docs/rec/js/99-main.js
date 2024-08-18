@@ -86,13 +86,15 @@ function gRanges(subcat) {
 }
 
 function init() {
-    const ini = sDB("select min(mes) from RESUMEN_MENSUAL")[0];
+    const ssi = sDB("select id from subcategoria where txt='Saldo inicial'")[0];
+    const min = sDB("select min(mes) from RESUMEN_MENSUAL")[0];
+    const ini = sDB("select min(mes) from RESUMEN_MENSUAL where subcategoria!="+ssi)[0];
     const fin = sDB("select max(mes) from RESUMEN_MENSUAL")[0];
     const $ini = $.c("ini");
     const $fin = $.c("fin");
-    $ini.setAttribute("min", ini);
+    $ini.setAttribute("min", min);
     $ini.setAttribute("max", fin);
-    $fin.setAttribute("min", ini);
+    $fin.setAttribute("min", min);
     $fin.setAttribute("max", fin);
     $ini.value = ini;
     $fin.value = fin;
@@ -218,7 +220,7 @@ function doChange() {
             mes>='${ini}' and 
             mes<='${fin}'
     `.trim();
-    const [gastos, ingreosos] = sDB(`
+    const [gst, ing] = sDB(`
         select
             ${select}
         from
@@ -230,45 +232,61 @@ function doChange() {
     const m = monthDiff(ini, fin);
     const $res = $.s("#res > dl")[0];
     $res.innerHTML=`
-        <dt>Meses</dt><dd>${m}</dd>
-        <dt>Ingresos</dt><dd>${Math.round(ingreosos/m)} €/mes</dd>
-        <dt>Gastos</dt><dd>${Math.round(gastos/m)} €/mes</dd>
-        <dt>Ahorro</dt><dd>${Math.round((ingreosos-gastos)/m)} €/mes</dd>
+        <dt>Tiempo</dt><dd>${m} mes${m==1?'':'es'}</dd>
+        <dt>Ingreso</dt><dd>${Math.round(ing/m)} €/mes</dd>
+        <dt>Gastos</dt><dd>${Math.round(gst/m)} €/mes</dd>
+        <dt>Ahorro</dt><dd>${Math.round((ing-gst)/m)} €/mes</dd><dd>${Math.round((1-(gst/ing))*100)} %</dd>
     `;
+
+    const key = (()=>{
+        if (m<=18) return "mes";
+        const _y = "substr(mes, 1, 4)";
+        const _m = "(cast(substr(mes, 6, 2) as integer) - 1)"
+        const _to = (l, n) => `${_y} || '-${l}' || (${_m} / ${n} + 1)`;
+        if (m<=(3*12)) return _to('T', 3);
+        if (m<=(4*12)) return _to('C', 4);
+        if (m<=(6*12)) return _to('S', 6);
+        return y;
+    })().trim();
 
     const dataset = sDB(`
         select
-            mes,
+            ${key},
             ${select}
         from
             RESUMEN_MENSUAL
         where
             ${where}
         group by
-            mes
+            ${key}
     `);
 
+    const labels = dataset.map(i=>i[0]);
+    const gastos = dataset.map(i=>Math.floor(i[1]));
+    const ingres = dataset.map(i=>Math.ceil(i[2]));
+    const ahorro = dataset.map(i=>Math.round(i[2]-i[1]));
+
     const data = {
-        labels: dataset.map(i=>i[0]),
+        labels: labels,
         datasets: [
             {
                 label: "Gastos",
-                data: dataset.map(i=>Math.floor(i[1])),
+                data: gastos,
                 fill: true,
                 borderColor: DFL_RGB_COLOR['red'].borderColor,
                 backgroundColor: DFL_RGB_COLOR['red'].backgroundColor,
             },
             {
                 label: "Ingresos",
-                data: dataset.map(i=>Math.ceil(i[2])),
+                data: ingres,
                 fill: true,
                 borderColor: DFL_RGB_COLOR['blue'].borderColor,
                 backgroundColor: DFL_RGB_COLOR['blue'].backgroundColor,
             },
             {
                 label: "Ahorro",
-                data: dataset.map(i=>Math.round(i[2]-i[1])),
-                fill: true,
+                data: ahorro,
+                fill: false,
                 borderColor: DFL_RGB_COLOR['green'].borderColor,
                 backgroundColor: DFL_RGB_COLOR['green'].backgroundColor,
             },

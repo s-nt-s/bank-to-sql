@@ -161,3 +161,6 @@ fieldset {
   margin-bottom: 16px;
   max-width: 800px;
 }
+fieldset label {
+	font-weight: bold;
+}

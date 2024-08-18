@@ -42,14 +42,24 @@ function getCanvas(id) {
 function setChart(id, data) {
     const ctx = getCanvas(id);
     if (ctx == null) return null;
-    console.log(data)
     const chrt = Chart.getChart(ctx);
     if (chrt == null) {
+        if (data == null) return;
         new Chart(ctx, {
             type: 'line',
-            data: data
+            data: data,
+          options: {
+            interaction: {
+              mode: 'index',
+              intersect: false
+            }
+          }
         });
         return;
+    }
+    if (data == null) {
+      chrt.destroy();
+      return;
     }
     chrt.data = data;
     chrt.update();
