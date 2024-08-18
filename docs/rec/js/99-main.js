@@ -1,4 +1,5 @@
 DB = null;
+INPUTS = "#ini, #fin, #cat input";
 const $ = {
     "i": (id) => document.getElementById(id),
     "s": (qr) => Array.from(document.querySelectorAll(qr)),
@@ -8,6 +9,22 @@ const $ = {
         let elClone = el.cloneNode(true);
         el.parentNode.replaceChild(elClone, el);
         return document.getElementById(id);
+    },
+    "v": (id) => {
+        const el = document.getElementById(id);
+        if (el==null) return null;
+        const vl = el.value;
+        const mn = el.getAttribute("min");
+        const mx = el.getAttribute("max");
+        if (mn!=null && vl<mn) {
+            el.value = mn;
+            return mn;
+        }
+        if (mx!=null && vl>mx) {
+            el.value = mx;
+            return mx;
+        }
+        return vl;
     }
 };
 
@@ -61,8 +78,8 @@ function gRanges(subcat) {
         if (subcat.length==0) return null;
         if (subcat.length==1) subcat=subcat[0];
     };
-    const ini = $.i("ini").value;
-    const fin = $.i("fin").value;
+    const ini = $.v("ini");
+    const fin = $.v("fin");
     const m = monthDiff(ini, fin);
     const where = Array.isArray(subcat)?`in (${subcat.join(', ')})`:`=${subcat}`;
     const [mn, mx, tt] = sDB(`
@@ -168,7 +185,7 @@ function init() {
         listener();
     });
 
-    $.s("#ini, #fin, #cat input").forEach(n => {
+    $.s(INPUTS).forEach(n => {
         n.addEventListener("change", doChange);
     });
     doChange();
@@ -185,9 +202,15 @@ function frmtNum(n, maxdec) {
 }
 
 function doChange() {
+    const ko = $.s(INPUTS).filter(n=>!n.checkValidity());
+    if (ko.length>0) {
+        const fail = ko[0];
+        setTimeout(()=>fail.reportValidity(), 500);
+        return;
+    }
     doLoading(true);
-    const ini = $.i("ini").value;
-    const fin = $.i("fin").value;
+    const ini = $.v("ini");
+    const fin = $.v("fin");
     const ids = uniq($.s("#cat input:checked").flatMap(n => {
         const val = n.value.split(/\s+/);
         return val.map(v=>Number(v));
@@ -282,17 +305,15 @@ function doChange() {
         const dflt = {
             fill: true,
             pointHoverRadius: 3,
-            pointRadius: 0
+            pointRadius: 0,
+            lineTension: 0.5
         }
         if (color != null) {
             delete obj['color'];
             dflt.borderColor = DFL_RGB_COLOR[color].borderColor;
             dflt.backgroundColor = DFL_RGB_COLOR[color].backgroundColor;
         }
-        Object.keys(dflt).forEach(key => {
-            if (!(key in obj)) obj[key] = dflt[key];
-        });
-        return obj;
+        return Object.assign({}, dflt, obj);
     }
 
     const data = {

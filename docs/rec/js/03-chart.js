@@ -84,7 +84,7 @@ function setChart(id, data) {
               family: "monospace"
             },
             callbacks: {
-              label: (context) => frmtEur(context.raw),
+              label: (context) => ' '+frmtEur(context.raw),
             }
           },
         },
