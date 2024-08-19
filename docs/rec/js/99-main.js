@@ -132,6 +132,18 @@ class BankManager {
             "ahorro": ing-gst
         }
     }
+    getMovimientos(mes) {
+        let sql = `
+            select
+                *
+            from
+                RESUMEN_MENSUAL
+            where
+                ${this.__where}
+        `.trim()
+        if (mes != null) sql += ` and mes='${mes}'`;
+        return DB.select(sql);
+    }
     getRange(subcat) {
         if (Array.isArray(subcat)) {
             if (subcat.length==0) return null;
