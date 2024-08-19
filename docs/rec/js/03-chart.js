@@ -50,31 +50,27 @@ function frmtEur(n) {
 }
 
 
-function getMode(arr) {
-  const frecuencias = {};
-  let maxFrecuencia = 0;
-  let moda = null;
+function calStepSize(datasets, chart) {
+  if (chart !=null) datasets = chart.data.datasets;
+  const vals = datasets.flatMap((dataset, i) => {
+    if (chart!=null && !chart.isDatasetVisible(i)) return [];
+      return dataset.data;
+  });
+  const length = vals.length / datasets.length;
 
-  for (const num of arr) {
-    frecuencias[num] = (frecuencias[num] || 0) + 1;
+  let s;
+  const steps = [10000, 1000];
+  for (let i = 0; i < steps.length; i++) {
+    s = steps[i];
+    if (vals.filter((v) => v > s).length > length) return s;
   }
-
-  for (const num in frecuencias) {
-    if (frecuencias[num] > maxFrecuencia) {
-      maxFrecuencia = frecuencias[num];
-      moda = num;
-    }
-  }
-
-  return moda;
+  return null;
 }
 
 function setChart(id, data) {
   const ctx = getCanvas(id);
   if (ctx == null) return null;
   const chrt = Chart.getChart(ctx);
-  const isMiles = data!=null && (data.datasets.filter(d=>getMode(d.data)<1000).length==0);
-  const yCallback = !isMiles?frmtEur:(v)=>frmtEur(v/1000).replace("€", "k€");
   if (chrt == null) {
     if (data == null) return;
     new Chart(ctx, {
@@ -88,30 +84,52 @@ function setChart(id, data) {
         scales: {
           y: {
             ticks: {
-              stepSize: isMiles? 1000: null,
-              callback: yCallback,
+              stepSize: calStepSize(data.datasets),
+              callback: function (value, index, values) {
+                const yScale = this.chart.scales.y;
+                const stepSize = yScale.options.ticks.stepSize;
+
+                console.log("Step size utilizado:", stepSize);
+                if (stepSize>=1000 && (stepSize%1000==0)) {
+                  return frmtEur(value/1000).replace("€", "k€");
+                }
+                return frmtEur(value);
+              },
             },
           },
         },
         plugins: {
           tooltip: {
-            titleAlign: 'center',
-            bodyAlign: 'right',
+            titleAlign: "center",
+            bodyAlign: "right",
             titleFont: {
-              family: "monospace"
+              family: "monospace",
             },
             bodyFont: {
-              family: "monospace"
+              family: "monospace",
             },
             footerFont: {
-              family: "monospace"
+              family: "monospace",
             },
             callbacks: {
-              label: (context) => ' '+frmtEur(context.raw),
-            }
+              label: (context) => " " + frmtEur(context.raw),
+            },
+          },
+          legend: {
+            onClick: (e, legendItem, legend) => {
+              const index = legendItem.datasetIndex;
+              const ci = legend.chart;
+              const meta = ci.getDatasetMeta(index);
+
+              meta.hidden = meta.hidden === null ? !ci.data.datasets[index].hidden : null;
+
+              ci.options.scales.y.ticks.stepSize = calStepSize(ci.data.datasets, ci);
+
+              ci.update();
+            },
           },
         },
-      }
+      },
     });
     return;
   }
@@ -120,7 +138,5 @@ function setChart(id, data) {
     return;
   }
   chrt.data = data;
-  chrt.options.scales.y.ticks.stepSize = isMiles? 1000: null;
-  chrt.options.scales.y.ticks.callback = yCallback;
   chrt.update();
 }
