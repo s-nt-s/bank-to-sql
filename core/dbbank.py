@@ -80,7 +80,7 @@ class DBBank(DBLite):
             importe = sum([i for f, i in devol])
             if importe > 0:
                 raise ValueError(f"Devolución con importe positivo: {devol} <- {devol}")
-            if importe > 0:
+            if importe != 0:
                 x = devol.pop(0)
                 self.execute(f"UPDATE movimiento SET importe = {importe} WHERE (fecha = '{x[0]}' AND importe = {x[1]})")
 
@@ -88,7 +88,6 @@ class DBBank(DBLite):
                 lambda x: f"(fecha = '{x[0]}' AND importe = {x[1]})",
                 devol
             )))
-
 
     def iter_devoluciones(self):
         devol = []
