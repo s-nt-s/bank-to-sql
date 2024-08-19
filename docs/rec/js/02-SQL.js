@@ -34,3 +34,35 @@ class DBLoader {
         })
     }
 }
+
+class DB {
+    static __db = null;
+    static __exec(sql) {
+        return DB.__db.exec(sql);
+    }
+    static __select(sql) {
+        const r = DB.__exec(sql);
+        return r[0].values;
+    }
+    static __one(sql) {
+        let vals = DB.__select(sql);
+        if (vals.length == 0) return null;
+        const one = vals[0];
+        if (one.length == 0) return null;
+        const val = one.length==1 ? one[0] : one;
+        return val;
+    }
+    static select(sql) {
+        console.debug(sql);
+        let vals = DB.__select(sql);
+        if (vals.length>0 && vals[0].length==1) vals = vals.map(x=>x[0]);
+        console.debug(vals);
+        return vals;
+    }
+    static one(sql) {
+        console.debug(sql);
+        const val = DB.__one(sql);
+        console.debug(val);
+        return val;
+    }
+}

@@ -49,10 +49,32 @@ function frmtEur(n) {
   });
 }
 
+
+function getMode(arr) {
+  const frecuencias = {};
+  let maxFrecuencia = 0;
+  let moda = null;
+
+  for (const num of arr) {
+    frecuencias[num] = (frecuencias[num] || 0) + 1;
+  }
+
+  for (const num in frecuencias) {
+    if (frecuencias[num] > maxFrecuencia) {
+      maxFrecuencia = frecuencias[num];
+      moda = num;
+    }
+  }
+
+  return moda;
+}
+
 function setChart(id, data) {
   const ctx = getCanvas(id);
   if (ctx == null) return null;
   const chrt = Chart.getChart(ctx);
+  const isMiles = data!=null && (data.datasets.filter(d=>getMode(d.data)<1000).length==0);
+  const yCallback = !isMiles?frmtEur:(v)=>frmtEur(v/1000).replace("€", "k€");
   if (chrt == null) {
     if (data == null) return;
     new Chart(ctx, {
@@ -66,7 +88,8 @@ function setChart(id, data) {
         scales: {
           y: {
             ticks: {
-              callback: frmtEur,
+              stepSize: isMiles? 1000: null,
+              callback: yCallback,
             },
           },
         },
@@ -88,7 +111,7 @@ function setChart(id, data) {
             }
           },
         },
-      },
+      }
     });
     return;
   }
@@ -97,5 +120,7 @@ function setChart(id, data) {
     return;
   }
   chrt.data = data;
+  chrt.options.scales.y.ticks.stepSize = isMiles? 1000: null;
+  chrt.options.scales.y.ticks.callback = yCallback;
   chrt.update();
 }

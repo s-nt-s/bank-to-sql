@@ -1,4 +1,3 @@
-DB = null;
 INPUTS = "#ini, #fin, #cat input";
 const $ = {
     "i": (id) => document.getElementById(id),
@@ -48,25 +47,24 @@ function monthDiff(d1, d2) {
     return month;
 }
 
+function monthAdd(d1, m) {
+    const [y, m1] = d1.split("-").map(Number);
+    const y1 = (m>0?Math.floor:Math.ceil)(m/12);
+    const m2 = m%12;
+    const new_m = (m1+m2).toString().padStart(2, '0');
+    return `${y+y1}-${new_m}`;
+}
+
 function doLoading(b) {
     if (b !== false) b = true;
     $.s(".hideInLoadding").forEach(n=>n.style.display=(b?'none':''));
-}
-
-function sDB(select) {
-    console.debug(select);
-    const r = DB.exec(select);
-    let vals =  r[0].values;
-    if (vals.length>0 && vals[0].length==1) vals = vals.map(x=>x[0]);
-    console.debug(vals);
-    return vals;
 }
 
 document.addEventListener("DOMContentLoaded", function(event) {
     $.i("dbfile").addEventListener("change", function() {
         doLoading(true);
         DBLoader.getDB(this.files[0]).then((_DB)=> {
-            DB = _DB;
+            DB.__db = _DB;
             init();
             doLoading(false);
         })
@@ -82,7 +80,7 @@ function gRanges(subcat) {
     const fin = $.v("fin");
     const m = monthDiff(ini, fin);
     const where = Array.isArray(subcat)?`in (${subcat.join(', ')})`:`=${subcat}`;
-    const [mn, mx, tt] = sDB(`
+    const [mn, mx, tt] = DB.one(`
     select 
         min(importe), 
         max(importe),
@@ -93,7 +91,7 @@ function gRanges(subcat) {
         mes>='${ini}' and
         mes<='${fin}' and
         subcategoria ${where}
-    `)[0];
+    `);
     return {
         "min": Math.floor(mn),
         "max": Math.ceil(mx),
@@ -103,27 +101,38 @@ function gRanges(subcat) {
 }
 
 function init() {
-    const ssi = sDB("select id from subcategoria where txt='Saldo inicial'")[0];
-    const min = sDB("select min(mes) from RESUMEN_MENSUAL")[0];
-    const ini = sDB("select min(mes) from RESUMEN_MENSUAL where subcategoria!="+ssi)[0];
-    const fin = sDB("select max(mes) from RESUMEN_MENSUAL")[0];
+    const ssi = DB.one("select id from subcategoria where txt='Saldo inicial'");
+    const min = DB.one("select min(mes) from RESUMEN_MENSUAL");
+    const max = DB.one("select max(mes) from RESUMEN_MENSUAL");
+    const fin = (()=>{
+        const max_date = DB.one("select max(fecha) from movimiento");
+        const [max_year, max_month, max_day] = max_date.split("-");
+        if (Number(max_day)>27) return `${max_year}-${max_month}`;
+        return DB.one(`select max(mes) from RESUMEN_MENSUAL where mes < '${max_year}-${max_month}'`);
+    })();
+    const ini = DB.one(`
+        select min(mes) from RESUMEN_MENSUAL where
+            mes>='${monthAdd(fin, -17)}' and
+            subcategoria!=${ssi}
+    `);
+
     const $ini = $.c("ini");
     const $fin = $.c("fin");
     $ini.setAttribute("min", min);
-    $ini.setAttribute("max", fin);
+    $ini.setAttribute("max", max);
     $fin.setAttribute("min", min);
-    $fin.setAttribute("max", fin);
+    $fin.setAttribute("max", max);
     $ini.value = ini;
     $fin.value = fin;
     const $cat = $.s("#cat")[0];
     $.s("#cat tbody").forEach(b=>b.remove());
     const html = [];
-    sDB(`
+    DB.select(`
         select id, txt from categoria
         where id!=-2
         order by txt
     `).forEach(([id, txt], index) => {
-        const countcat = sDB(`
+        const countcat = DB.one(`
             select 
                 count(*)
             from
@@ -131,9 +140,9 @@ function init() {
                     m.subcategoria=s.id
             where
                 s.categoria=${id}
-        `)[0];
+        `);
         if (countcat==0) return;
-        const sub = sDB(`
+        const sub = DB.select(`
             select
                 id,
                 case
@@ -146,7 +155,7 @@ function init() {
                 else 0
             end, txt
         `).map(([sid, stxt])=>{
-            let count = sDB("select count(*) from RESUMEN_MENSUAL where subcategoria="+sid)[0];
+            const count = DB.one("select count(*) from RESUMEN_MENSUAL where subcategoria="+sid);
             return [sid, stxt, count];
         }).filter(([sid, stxt, count]) => count>0);
         const ids = sub.map(([sid, stxt, count])=>sid);
@@ -205,7 +214,7 @@ function doChange() {
     const ko = $.s(INPUTS).filter(n=>!n.checkValidity());
     if (ko.length>0) {
         const fail = ko[0];
-        setTimeout(()=>fail.reportValidity(), 500);
+        setTimeout(()=>fail.reportValidity(), 100);
         return;
     }
     doLoading(true);
@@ -253,14 +262,14 @@ function doChange() {
             mes>='${ini}' and 
             mes<='${fin}'
     `.trim();
-    const [gst, ing] = sDB(`
+    const [gst, ing] = DB.one(`
         select
             ${select}
         from
             RESUMEN_MENSUAL
         where
             ${where}
-    `)[0];
+    `);
 
     const m = monthDiff(ini, fin);
     const y = Math.round((m / 12)*10)/10;
@@ -284,7 +293,7 @@ function doChange() {
         return y;
     })().trim();
 
-    const dataset = sDB(`
+    const dataset = DB.select(`
         select
             ${key},
             ${select}
