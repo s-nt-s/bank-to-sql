@@ -132,16 +132,26 @@ class BankManager {
             "ahorro": ing-gst
         }
     }
-    getMovimientos(mes) {
+    getMovimientos(key) {
         let sql = `
+        with R as (
             select
-                *
+                ${this.__key} k,
+                subcategoria,
+                concepto,
+                sum(importe) importe
             from
                 RESUMEN_MENSUAL
             where
-                ${this.__where}
+                ${this.__where},
+                subcategoria,
+                concepto
+            group by
+                ${this.__key}
+        )
+        select * from R
         `.trim()
-        if (mes != null) sql += ` and mes='${mes}'`;
+        if (key != null) sql += ` where k='${key}'`;
         return DB.select(sql);
     }
     getRange(subcat) {
@@ -215,12 +225,21 @@ class BankManager {
 BANK = new BankManager();
 
 function doLoading(b) {
+    const hideInLoadding = ".hideInLoadding";
+    const hideInImport = ".hideInImport";
+    const hideIn = hideInLoadding+", "+hideInImport;
+    if (DB.__db == null) {
+        $.s(hideIn).forEach(n=>n.style.display='none');
+        return;
+    }
+    $.s(hideInImport).forEach(n=>n.style.display='');
     if (b !== false) b = true;
-    $.s(".hideInLoadding").forEach(n=>n.style.display=(b?'none':''));
+    $.s(hideInLoadding).forEach(n=>n.style.display=(b?'none':''));
 }
 
 document.addEventListener("DOMContentLoaded", function(event) {
     $.i("dbfile").addEventListener("change", function() {
+        DB.__db = null;
         doLoading(true);
         DBLoader.getDB(this.files[0]).then((_DB)=> {
             DB.__db = _DB;
@@ -325,10 +344,10 @@ function doChange() {
 
     const thead = $.s("#cat thead tr")[0];
     if (thead.getElementsByTagName("th").length==1) thead.insertAdjacentHTML('beforeend', `
-        <th>Media (€/mes)</th>
-        <th>Total (€)</th>
-        <th>Mínimo (€)</th>
-        <th>Máximo (€)</th>
+        <th>Media<br/>(€/mes)</th>
+        <th>Total<br/>(€)</th>
+        <th>Mínimo<br/>(€)</th>
+        <th>Máximo<br/>(€)</th>
     `);
     $.s("#cat input").forEach(n => {
         const r = BANK.getRange(n.value.split(/\s+/).map(Number));
@@ -362,8 +381,8 @@ function doChange() {
     const dataset = BANK.getDataset();
 
     const labels = dataset.map(i=>i[0]);
-    const gastos = dataset.map(i=>Math.floor(i[1]));
     const ingres = dataset.map(i=>Math.ceil(i[2]));
+    const gastos = dataset.map(i=>Math.floor(i[1]));
     const ahorro = dataset.map(i=>Math.round(i[2]-i[1]));
     const mkDate = (obj) => {
         const color = obj.color;
@@ -385,14 +404,14 @@ function doChange() {
         labels: labels,
         datasets: [
             {
-                label: "Gastos",
-                data: gastos,
-                color: "red"
-            },
-            {
                 label: "Ingresos",
                 data: ingres,
                 color: "blue"
+            },
+            {
+                label: "Gastos",
+                data: gastos,
+                color: "red"
             },
             {
                 label: "Ahorro",
