@@ -67,7 +67,7 @@ function calStepSize(datasets, chart) {
   return null;
 }
 
-function setChart(id, data) {
+function setLineChart(id, data, onClick) {
   const ctx = getCanvas(id);
   if (ctx == null) return null;
   const chrt = Chart.getChart(ctx);
@@ -88,13 +88,9 @@ function setChart(id, data) {
               callback: function (value, index, values) {
                 const yScale = this.chart.scales.y;
                 const stepSize = yScale.options.ticks.stepSize;
-
-                console.log("Step size utilizado:", stepSize);
-                if (stepSize>=1000 && (stepSize%1000==0)) {
-                  return frmtEur(value/1000).replace("€", "k€");
-                }
-                return frmtEur(value);
-              },
+                if (stepSize==null || stepSize<1000 || (stepSize%1000)!=0) return frmtEur(value);
+                return frmtEur(value/1000).replace("€", "k€");
+              }
             },
           },
         },
@@ -129,6 +125,7 @@ function setChart(id, data) {
             },
           },
         },
+        onClick: onClick
       },
     });
     return;

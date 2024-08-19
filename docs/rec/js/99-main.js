@@ -30,6 +30,7 @@ const $ = {
 const uniq = (arr) => Array.from(new Set(arr)).sort();
 
 function monthDiff(d1, d2) {
+    if (d1==null || d2==null) return null;
     const to_tp = (d) => d.trim().split()[0].split("-").map(Number);
     const tp1 = to_tp(d1);
     const tp2 = to_tp(d2);
@@ -55,6 +56,152 @@ function monthAdd(d1, m) {
     return `${y+y1}-${new_m}`;
 }
 
+class BankManager {
+    constructor() {
+        this.ini = null;
+        this.fin = null;
+        this.meses = null;
+        this.subs = [];
+        this.load();
+    }
+    load() {
+        this.ini = $.v("ini");
+        this.fin = $.v("fin");
+        this.meses = monthDiff(this.ini, this.fin);
+        this.subs = uniq($.s("#cat input:checked").flatMap(n => {
+            const val = n.value.split(/\s+/);
+            return val.map(v=>Number(v));
+        }))
+    }
+    get __select() {
+        return `
+            -sum(case
+                when importe<0 then importe
+                else 0
+            end) gastos,
+            sum(case
+                when importe>0 then importe
+                else 0
+            end) ingresos
+        `.trim()
+    }
+    get __where() {
+        if (this.subs == null || this.length==0) return "1!=1"
+        const wSub = this.subs.length==1?`= ${this.subs[0]}`:`in (${this.subs.join(", ")})`;
+        return `
+            subcategoria ${wSub} and
+            mes>='${this.ini}' and 
+            mes<='${this.fin}'
+        `.trim();
+    }
+    get __key() {
+        if (this.meses<=18) return "mes";
+        const _y = "substr(mes, 1, 4)";
+        const _m = "(cast(substr(mes, 6, 2) as integer) - 1)"
+        const _to = (l, n) => `${_y} || '-${l}' || ((${_m} / ${n}) + 1)`;
+        if (this.meses<=(3*12)) return _to('T', 3);
+        if (this.meses<=(4*12)) return _to('C', 4);
+        if (this.meses<=(6*12)) return _to('S', 6);
+        return _y;
+    }
+    getDataset() {
+        return DB.select(`
+            select
+                ${this.__key},
+                ${this.__select}
+            from
+                RESUMEN_MENSUAL
+            where
+                ${this.__where}
+            group by
+                ${this.__key}
+        `);
+    }
+    getResumen() {
+        const [gst, ing] = DB.one(`
+            select
+                ${this.__select}
+            from
+                RESUMEN_MENSUAL
+            where
+                ${this.__where}
+        `);
+        return {
+            "ingresos": ing,
+            "gastos": gst,
+            "ahorro": ing-gst
+        }
+    }
+    getRange(subcat) {
+        if (Array.isArray(subcat)) {
+            if (subcat.length==0) return null;
+            if (subcat.length==1) subcat=subcat[0];
+        };
+        const where = Array.isArray(subcat)?`in (${subcat.join(', ')})`:`=${subcat}`;
+        const [mn, mx, tt] = DB.one(`
+        select 
+            min(importe), 
+            max(importe),
+            sum(importe)
+        from
+            RESUMEN_MENSUAL
+        where
+            mes>='${this.ini}' and
+            mes<='${this.fin}' and
+            subcategoria ${where}
+        `);
+        return {
+            "min": Math.floor(mn),
+            "max": Math.ceil(mx),
+            "total": Math.round(tt),
+            "media": Math.round(tt/this.meses)
+        };
+    }
+    getCatSubCat() {
+        const rtn = [];
+        DB.select(`
+            select id, txt from categoria
+            where id!=-2
+            order by txt
+        `).forEach(([id, txt]) => {
+            const countcat = DB.one(`
+                select 
+                    count(*)
+                from
+                    RESUMEN_MENSUAL m join subcategoria s on
+                        m.subcategoria=s.id
+                where
+                    s.categoria=${id}
+            `);
+            if (countcat==0) return;
+            const sub = DB.select(`
+                select
+                    id,
+                    case
+                        when txt like '%(otros)%' then 'Otros'
+                        else txt
+                    end txt
+                from subcategoria where categoria=${id}
+                order by case
+                    when txt like '%(otros)%' then 1
+                    else 0
+                end, txt
+            `).map(([sid, stxt])=>{
+                const count = DB.one("select count(*) from RESUMEN_MENSUAL where subcategoria="+sid);
+                return [sid, stxt, count];
+            }).filter(([sid, stxt, count]) => count>0);
+            const ids = sub.map(([sid, stxt, count])=>sid);
+            rtn.push([
+                {id: id, txt:txt},
+                sub.map(([sid, stxt, count])=>{return {id:sid, txt:stxt}})
+            ]);
+        });
+        return rtn;
+    }
+}
+
+BANK = new BankManager();
+
 function doLoading(b) {
     if (b !== false) b = true;
     $.s(".hideInLoadding").forEach(n=>n.style.display=(b?'none':''));
@@ -71,34 +218,6 @@ document.addEventListener("DOMContentLoaded", function(event) {
     })
 });
 
-function gRanges(subcat) {
-    if (Array.isArray(subcat)) {
-        if (subcat.length==0) return null;
-        if (subcat.length==1) subcat=subcat[0];
-    };
-    const ini = $.v("ini");
-    const fin = $.v("fin");
-    const m = monthDiff(ini, fin);
-    const where = Array.isArray(subcat)?`in (${subcat.join(', ')})`:`=${subcat}`;
-    const [mn, mx, tt] = DB.one(`
-    select 
-        min(importe), 
-        max(importe),
-        sum(importe)
-    from
-        RESUMEN_MENSUAL
-    where
-        mes>='${ini}' and
-        mes<='${fin}' and
-        subcategoria ${where}
-    `);
-    return {
-        "min": Math.floor(mn),
-        "max": Math.ceil(mx),
-        "total": Math.round(tt),
-        "media": Math.round(tt/m)
-    };
-}
 
 function init() {
     const ssi = DB.one("select id from subcategoria where txt='Saldo inicial'");
@@ -124,57 +243,29 @@ function init() {
     $fin.setAttribute("max", max);
     $ini.value = ini;
     $fin.value = fin;
+
+    BANK.load();
+
     const $cat = $.s("#cat")[0];
     $.s("#cat tbody").forEach(b=>b.remove());
     const html = [];
-    DB.select(`
-        select id, txt from categoria
-        where id!=-2
-        order by txt
-    `).forEach(([id, txt], index) => {
-        const countcat = DB.one(`
-            select 
-                count(*)
-            from
-                RESUMEN_MENSUAL m join subcategoria s on
-                    m.subcategoria=s.id
-            where
-                s.categoria=${id}
-        `);
-        if (countcat==0) return;
-        const sub = DB.select(`
-            select
-                id,
-                case
-                    when txt like '%(otros)%' then 'Otros'
-                    else txt
-                end txt
-            from subcategoria where categoria=${id}
-            order by case
-                when txt like '%(otros)%' then 1
-                else 0
-            end, txt
-        `).map(([sid, stxt])=>{
-            const count = DB.one("select count(*) from RESUMEN_MENSUAL where subcategoria="+sid);
-            return [sid, stxt, count];
-        }).filter(([sid, stxt, count]) => count>0);
-        const ids = sub.map(([sid, stxt, count])=>sid);
+    BANK.getCatSubCat().forEach(([cat, subs]) => {
         html.push("<tbody>")
-        if (ids.length>1) {
+        if (subs.length>1) {
             html.push(`
                 <tr class="cat">
                     <th>
-                        <input checked type="checkbox" value="${ids.join(" ")}" id="cat_${index}"/><label for="cat_${index}">${txt}</label> 
+                        <input checked type="checkbox" value="${subs.map(s=>s.id).join(' ')}" id="cat_${cat.id}"/><label for="cat_${cat.id}">${cat.txt}</label> 
                     </th>
                 </tr>
             `);
         }
-        sub.forEach(([sid, stxt, count]) => {
-            const tag = ids.length==1?'th':'td';
+        subs.forEach((sub) => {
+            const tag = subs.length==1?'th':'td';
             html.push(`
                 <tr class="sub">
                     <${tag}>
-                        <input checked type="checkbox" value="${sid}" id="sub_${sid}"/><label for="sub_${sid}">${stxt}</label>
+                        <input checked type="checkbox" value="${sub.id}" id="sub_${sub.id}"/><label for="sub_${sub.id}">${sub.txt}</label>
                     </${tag}>
                 </tr>
             `);
@@ -218,12 +309,8 @@ function doChange() {
         return;
     }
     doLoading(true);
-    const ini = $.v("ini");
-    const fin = $.v("fin");
-    const ids = uniq($.s("#cat input:checked").flatMap(n => {
-        const val = n.value.split(/\s+/);
-        return val.map(v=>Number(v));
-    }));
+    BANK.load();
+
     const thead = $.s("#cat thead tr")[0];
     if (thead.getElementsByTagName("th").length==1) thead.insertAdjacentHTML('beforeend', `
         <th>Media (€/mes)</th>
@@ -232,7 +319,7 @@ function doChange() {
         <th>Máximo (€)</th>
     `);
     $.s("#cat input").forEach(n => {
-        const r = gRanges(n.value.split(/\s+/).map(Number));
+        const r = BANK.getRange(n.value.split(/\s+/).map(Number));
         const tr = n.closest("tr");
         if (tr.getElementsByTagName("td").length<=2) tr.insertAdjacentHTML('beforeend', `
             <td></td>
@@ -246,64 +333,21 @@ function doChange() {
         tds.pop().innerHTML = frmtNum(r.total);
         tds.pop().innerHTML = frmtNum(r.media);
     });
-    if (ids.length==0) return;
-    const select = `
-        -sum(case
-            when importe<0 then importe
-            else 0
-        end) gastos,
-        sum(case
-            when importe>0 then importe
-            else 0
-        end) ingresos
-    `.trim()
-    const where = `
-            subcategoria in ('NaN', ${ids.join(", ")}) and
-            mes>='${ini}' and 
-            mes<='${fin}'
-    `.trim();
-    const [gst, ing] = DB.one(`
-        select
-            ${select}
-        from
-            RESUMEN_MENSUAL
-        where
-            ${where}
-    `);
+    if (BANK.subs.length==0) return;
+    
+    const rsm = BANK.getResumen();
 
-    const m = monthDiff(ini, fin);
-    const y = Math.round((m / 12)*10)/10;
+    const y = Math.round((BANK.meses / 12)*10)/10;
     const $res = $.s("#res > dl")[0];
     $res.innerHTML=`
-        <dt>Tiempo</dt><dd>${m} mes${m==1?'':'es'}</dd><dd>${frmtNum(y, 1)} año${y==1?'':'s'}</dd>
-        <dt>Ingreso</dt><dd>${frmtNum(ing/m)} €/mes</dd><dd>${frmtNum(ing/y)} €/año</dd>
-        <dt>Gastos</dt><dd>${frmtNum(gst/m)} €/mes</dd><dd>${frmtNum(gst/y)} €/año</dd>
-        <dt>Ahorro</dt><dd>${frmtNum((ing-gst)/m)} €/mes</dd><dd>${frmtNum((ing-gst)/y)} €/año</dd>
-                       <dd style="grid-column: 2;">${frmtNum((1-(gst/ing))*100)} %</dd>
+        <dt>Tiempo</dt><dd>${BANK.meses} mes${BANK.meses==1?'':'es'}</dd><dd>${frmtNum(y, 1)} año${y==1?'':'s'}</dd>
+        <dt>Ingreso</dt><dd>${frmtNum(rsm.ingresos/BANK.meses)} €/mes</dd><dd>${frmtNum(rsm.ingresos/y)} €/año</dd>
+        <dt>Gastos</dt><dd>${frmtNum(rsm.gastos/BANK.meses)} €/mes</dd><dd>${frmtNum(rsm.gastos/y)} €/año</dd>
+        <dt>Ahorro</dt><dd>${frmtNum(rsm.ahorro/BANK.meses)} €/mes</dd><dd>${frmtNum(rsm.ahorro/y)} €/año</dd>
+                       <dd style="grid-column: 2;">${frmtNum((1-(rsm.gastos/rsm.ingresos))*100)} %</dd>
     `;
 
-    const key = (()=>{
-        if (m<=18) return "mes";
-        const _y = "substr(mes, 1, 4)";
-        const _m = "(cast(substr(mes, 6, 2) as integer) - 1)"
-        const _to = (l, n) => `${_y} || '-${l}' || ((${_m} / ${n}) + 1)`;
-        if (m<=(3*12)) return _to('T', 3);
-        if (m<=(4*12)) return _to('C', 4);
-        if (m<=(6*12)) return _to('S', 6);
-        return y;
-    })().trim();
-
-    const dataset = DB.select(`
-        select
-            ${key},
-            ${select}
-        from
-            RESUMEN_MENSUAL
-        where
-            ${where}
-        group by
-            ${key}
-    `);
+    const dataset = BANK.getDataset();
 
     const labels = dataset.map(i=>i[0]);
     const gastos = dataset.map(i=>Math.floor(i[1]));
@@ -347,5 +391,17 @@ function doChange() {
         ].map(mkDate)
     }
     doLoading(false);
-    setChart("chart", data);
+    setLineChart(
+        "chart",
+        data,
+        (e, elements) => {
+            if (elements.length==0) return;
+            const element = elements[0];
+            const index = element.index;
+            const x = e.chart.data.labels[index];
+            if (!/^\d{4}-\d{2}$/.test(x)) return;
+            const y = elements.map(elm=>e.chart.data.datasets[elm.datasetIndex].label);
+            console.log(x, y);
+        }
+    );
 }
