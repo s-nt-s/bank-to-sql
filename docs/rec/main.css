@@ -87,10 +87,13 @@ fieldset.hidefls .firstinfls {
 #cat tbody > tr:first-child {
 	background-color: gold;
 }
-.g2 {
+.rango {
     display: grid;
-    grid-template-columns: max-content max-content;
+    grid-template-columns: max-content max-content max-content;
     gap: 10px;
+}
+.rango code {
+	text-align: right;
 }
 #res dl {
     display: grid;

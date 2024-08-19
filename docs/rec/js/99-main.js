@@ -104,6 +104,10 @@ class BankManager {
         if (this.meses<=(6*12)) return _to('S', 6);
         return _y;
     }
+    getSaldo(mes, inclusive) {
+        const eq = inclusive?"=":"";
+        return DB.one(`select sum(importe) from RESUMEN_MENSUAL where mes<${eq}'${mes}'`)
+    }
     getDataset() {
         return DB.select(`
             select
@@ -129,7 +133,11 @@ class BankManager {
         return {
             "ingresos": ing,
             "gastos": gst,
-            "ahorro": ing-gst
+            "ahorro": ing-gst,
+            "saldo": {
+                "ini": this.getSaldo(this.ini),
+                "fin": this.getSaldo(this.fin, true),
+            }
         }
     }
     getMovimientos(key) {
@@ -333,6 +341,7 @@ function frmtNum(n, maxdec) {
 }
 
 function doChange() {
+    $.s("#saldo_inicial, #saldo_final").forEach(n=>n.innerHTML=="");
     const ko = $.s(INPUTS).filter(n=>!n.checkValidity());
     if (ko.length>0) {
         const fail = ko[0];
@@ -367,6 +376,8 @@ function doChange() {
     if (BANK.subs.length==0) return;
     
     const rsm = BANK.getResumen();
+    $.i("saldo_inicial").innerHTML = frmtNum(rsm.saldo.ini)+" €";
+    $.i("saldo_final").innerHTML = frmtNum(rsm.saldo.fin)+" €";
 
     const y = Math.round((BANK.meses / 12)*10)/10;
     const $res = $.s("#res > dl")[0];
