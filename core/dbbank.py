@@ -81,8 +81,11 @@ class DBBank(DBLite):
             if importe > 0:
                 raise ValueError(f"Devolución con importe positivo: {devol} <- {devol}")
             if importe != 0:
-                x = devol.pop(0)
-                self.execute(f"UPDATE movimiento SET importe = {importe} WHERE (fecha = '{x[0]}' AND importe = {x[1]})")
+                f, i = devol.pop(0)
+                count = self.one(f"select count(*) from movimiento where (fecha = '{f}' AND importe = {i})")
+                if count != 1:
+                    raise ValueError(f"<fecha={f}, importe={i}> encontrado {count} veces")
+                self.execute(f"UPDATE movimiento SET importe = {importe} WHERE (fecha = '{f}' AND importe = {i})")
 
             self.execute("DELETE FROM movimiento WHERE " + " OR ".join(map(
                 lambda x: f"(fecha = '{x[0]}' AND importe = {x[1]})",

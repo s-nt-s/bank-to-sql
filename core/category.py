@@ -23,7 +23,6 @@ class SubCategory(Enum):
     AGUA = "Agua"
     CALEFACCION = "Calefacción"
     COMUNIDAD = "Comunidad"
-    INTERNET = "Internet"
     LUZ_GAS = "Luz y gas"
     LUZ = "Luz"
     MANTENIMIENTO_HOGAR = "Mantenimiento del hogar"
@@ -139,7 +138,6 @@ class Category(Enum):
         SubCategory.AGUA,
         SubCategory.CALEFACCION,
         SubCategory.COMUNIDAD,
-        SubCategory.INTERNET,
         SubCategory.LUZ_GAS,
         SubCategory.LUZ,
         SubCategory.MANTENIMIENTO_HOGAR,
