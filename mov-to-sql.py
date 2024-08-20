@@ -7,8 +7,10 @@ import sys
 from core.dbbank import DBBank
 from core.movimientos import Movimientos
 from core.log import config_log
+import logging
 
 config_log("mov-to-sql.log")
+logger = logging.getLogger(__name__)
 
 
 if __name__ == "__main__":
@@ -35,4 +37,5 @@ if __name__ == "__main__":
     with DBBank(args.out, reload=True) as db:
         db.populate(reader)
         for sql in sorted(Path(fix_sql).rglob('*.sql')):
+            logger.info(sql)
             db.execute(sql)
