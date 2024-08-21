@@ -49,11 +49,17 @@ function monthDiff(d1, d2) {
 }
 
 function monthAdd(d1, m) {
-    const [y, m1] = d1.split("-").map(Number);
-    const y1 = (m>0?Math.floor:Math.ceil)(m/12);
-    const m2 = m%12;
-    const new_m = (m1+m2).toString().padStart(2, '0');
-    return `${y+y1}-${new_m}`;
+    let [y, m1] = d1.split("-").map(Number);
+    if (m<0) {
+        const delta = Math.floor(-m/12)+1;
+        y -= delta;
+        m = 12+(m%12);
+    }
+    let new_m = (m1+m);
+    const y1 = Math.floor(new_m/12);
+    const m2 = new_m%12;
+    const m2s = m2.toString().padStart(2, '0');
+    return `${y+y1}-${m2s}`;
 }
 
 class BankManager {
@@ -270,7 +276,7 @@ function init() {
     })();
     const ini = DB.one(`
         select min(mes) from RESUMEN_MENSUAL where
-            mes>='${monthAdd(fin, -17)}' and
+            mes>='${monthAdd(fin, -11)}' and
             subcategoria!=${ssi}
     `);
 
