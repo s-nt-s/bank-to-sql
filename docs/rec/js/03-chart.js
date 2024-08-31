@@ -67,73 +67,116 @@ function calStepSize(datasets, chart) {
   return null;
 }
 
-function setLineChart(id, data, onClick) {
+function getCtxIfNeedCreate(id, data) {
   const ctx = getCanvas(id);
   if (ctx == null) return null;
   const chrt = Chart.getChart(ctx);
-  if (chrt == null) {
-    if (data == null) return;
-    new Chart(ctx, {
-      type: "line",
-      data: data,
-      options: {
-        interaction: {
-          mode: "index",
-          intersect: false,
-        },
-        scales: {
-          y: {
-            ticks: {
-              stepSize: calStepSize(data.datasets),
-              callback: function (value, index, values) {
-                const yScale = this.chart.scales.y;
-                const stepSize = yScale.options.ticks.stepSize;
-                if (stepSize==null || stepSize<1000 || (stepSize%1000)!=0) return frmtEur(value);
-                return frmtEur(value/1000).replace("€", "k€");
-              }
-            },
-          },
-        },
-        plugins: {
-          tooltip: {
-            titleAlign: "center",
-            bodyAlign: "right",
-            titleFont: {
-              family: "monospace",
-            },
-            bodyFont: {
-              family: "monospace",
-            },
-            footerFont: {
-              family: "monospace",
-            },
-            callbacks: {
-              label: (context) => " " + frmtEur(context.raw),
-            },
-          },
-          legend: {
-            onClick: (e, legendItem, legend) => {
-              const index = legendItem.datasetIndex;
-              const ci = legend.chart;
-              const meta = ci.getDatasetMeta(index);
-
-              meta.hidden = meta.hidden === null ? !ci.data.datasets[index].hidden : null;
-
-              ci.options.scales.y.ticks.stepSize = calStepSize(ci.data.datasets, ci);
-
-              ci.update();
-            },
-          },
-        },
-        onClick: onClick
-      },
-    });
-    return;
-  }
+  if (chrt == null) return data!=null?ctx:null;
   if (data == null) {
     chrt.destroy();
-    return;
+    return null;
   }
   chrt.data = data;
   chrt.update();
+  return null;
+}
+
+function setLineChart(id, data, onClick) {
+  const ctx = getCtxIfNeedCreate(id, data);
+  if (ctx == null) return;
+  new Chart(ctx, {
+    type: "line",
+    data: data,
+    options: {
+      interaction: {
+        mode: "index",
+        intersect: false,
+      },
+      scales: {
+        y: {
+          ticks: {
+            stepSize: calStepSize(data.datasets),
+            callback: function (value, index, values) {
+              const yScale = this.chart.scales.y;
+              const stepSize = yScale.options.ticks.stepSize;
+              if (stepSize==null || stepSize<1000 || (stepSize%1000)!=0) return frmtEur(value);
+              return frmtEur(value/1000).replace("€", "k€");
+            }
+          },
+        },
+      },
+      plugins: {
+        tooltip: {
+          titleAlign: "center",
+          bodyAlign: "right",
+          titleFont: {
+            family: "monospace",
+          },
+          bodyFont: {
+            family: "monospace",
+          },
+          footerFont: {
+            family: "monospace",
+          },
+          callbacks: {
+            label: (context) => " " + frmtEur(context.raw),
+          },
+        },
+        legend: {
+          onClick: (e, legendItem, legend) => {
+            const index = legendItem.datasetIndex;
+            const ci = legend.chart;
+            const meta = ci.getDatasetMeta(index);
+
+            meta.hidden = meta.hidden === null ? !ci.data.datasets[index].hidden : null;
+
+            ci.options.scales.y.ticks.stepSize = calStepSize(ci.data.datasets, ci);
+
+            ci.update();
+          },
+        },
+      },
+      onClick: onClick
+    },
+  });
+}
+
+
+function setPieChart(id, data) {
+  const ctx = getCtxIfNeedCreate(id, data);
+  if (ctx == null) return;
+  data.datasets.forEach(d => {
+    if (d.backgroundColor!=null) return;
+    if (d.data.length<=7) return;
+    d.backgroundColor = generateColors(d.data.length);
+  });
+  new Chart(ctx, {
+    type: "pie",
+    data: data,
+    options: {
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: (context) => {
+              //const label = context.label;
+              const value = context.raw;
+              const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+              const percent = ((value / total) * 100).toFixed(2);
+              return frmtEur(value) + " (" + percent + "%)";
+            },
+          },
+        }
+      },
+    },
+  });
+}
+
+
+function generateColors(numColors) {
+  const colors = [];
+  for (let i = 0; i < numColors; i++) {
+      const color = `hsl(${i * 360 / numColors}, 100%, 50%)`;
+      colors.push(color);
+  }
+  return colors;
 }

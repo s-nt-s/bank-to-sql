@@ -110,6 +110,21 @@ class BankManager {
         if (this.meses<=(6*12)) return _to('S', 6);
         return _y;
     }
+    getCatImporte() {
+        return DB.select(`
+            select 
+                s.txt,
+                sum(importe)
+            from
+                RESUMEN_MENSUAL m join subcategoria s on m.subcategoria=s.id
+            where
+                ${this.__where}
+            group by
+                s.txt
+            order by 
+                abs(sum(importe)) desc
+            `);
+    }
     getSaldo(mes, inclusive) {
         const eq = inclusive?"=":"";
         return DB.one(`select sum(importe) from RESUMEN_MENSUAL where mes<${eq}'${mes}'`)
@@ -440,7 +455,7 @@ function doChange() {
     }
     doLoading(false);
     setLineChart(
-        "chart",
+        "line_chart",
         data,
         (e, elements) => {
             if (elements.length==0) return;
@@ -452,4 +467,25 @@ function doChange() {
             console.log(x, y);
         }
     );
+    const cat_importe = BANK.getCatImporte();
+    const cat_gastos = cat_importe.filter(i=>i[1]<0);
+    const [main, others] = arr_split(cat_gastos, 10)
+    if (others.length) {
+        main.push(["Resto", others.reduce((a, i)=>a+i[1], 0)]);
+    }
+    setPieChart(
+        "pie_chart",
+        {
+            labels: main.map(i=>i[0]),
+            datasets: [{
+                data: main.map(i=>-i[1]),
+                hoverOffset: 4
+            }]
+        }
+    )
+}
+
+function arr_split(arr, cutin) {
+    cutin--;
+    return [arr.slice(0, cutin), arr.slice(cutin)];
 }
