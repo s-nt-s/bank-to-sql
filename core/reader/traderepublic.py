@@ -10,7 +10,7 @@ from core.filemanager import FM
 
 
 CNT_PREFIX = 'DE37 5021 0900 70 '
-MES = ("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
+MES = ("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sept", "oct", "nov", "dic")
 re_sp = re.compile(r"\s+")
 
 
@@ -80,7 +80,7 @@ def get_date(row: str):
     txt = " ".join(r[:11] for r in row.split("\n"))
     m = re.search(r"(\d{2})\s*("+("|".join(MES))+")\s*(\d{4})", txt)
     if m is None:
-        raise ValueError(f"Date not found in {row}")
+        raise ValueError(f"Date not found in:\n{row}")
     d, m, y = m.groups()
     return date(int(y), MES.index(m)+1, int(d))
 
