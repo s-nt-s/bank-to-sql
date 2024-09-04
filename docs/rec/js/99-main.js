@@ -469,9 +469,10 @@ function doChange() {
     );
     const cat_importe = BANK.getCatImporte();
     const cat_gastos = cat_importe.filter(i=>i[1]<0);
-    const [main, others] = arr_split(cat_gastos, 10)
-    if (others.length) {
-        main.push(["Resto", others.reduce((a, i)=>a+i[1], 0)]);
+    let [main, others] = arr_split(cat_gastos, 9)
+    if (others.length>0) {
+        if (others.length==1) main = cat_gastos;
+        else main.push(["Resto", others.reduce((a, i)=>a+i[1], 0)]);
     }
     setPieChart(
         "pie_chart",
@@ -486,6 +487,5 @@ function doChange() {
 }
 
 function arr_split(arr, cutin) {
-    cutin--;
     return [arr.slice(0, cutin), arr.slice(cutin)];
 }
