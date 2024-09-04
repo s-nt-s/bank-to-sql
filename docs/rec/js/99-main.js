@@ -156,7 +156,7 @@ class BankManager {
             "gastos": gst,
             "ahorro": ing-gst,
             "saldo": {
-                "ini": this.getSaldo(this.ini),
+                "ini": this.getSaldo(this.ini, false),
                 "fin": this.getSaldo(this.fin, true),
             }
         }
