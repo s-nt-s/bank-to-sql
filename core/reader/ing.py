@@ -45,29 +45,53 @@ def _get_subcat(c: str, s: str, concepto: str):
 class IngReader(Reader):
     def read(self):
         ws: Excel = FM.load(self.path)
+        ini, _, cnt = self.__get_account_index(ws)
         cnt = ws.get_text(1, 3)
         arr = []
-        for i in range(6, ws.nrows):
+        for i in range(ini+5, ws.nrows):
+            fecha = None
+            try:
+                fecha = ws.get_date(i, 0)
+            except (ValueError, TypeError):
+                continue
+            if fecha is None:
+                continue
             categoria = ws.get_text(i, 1)
             subcategoria = ws.get_text(i, 2)
             concepto = ws.get_text(i, 3)
+            importe = ws.get_number(i, 6)
+            if importe is None:
+                importe = ws.get_number(i, 5)
             m = Movimiento(
                 cuenta=cnt,
-                fecha=ws.get_date(i, 0),
+                fecha=fecha,
                 subcategoria=_get_subcat(categoria, subcategoria, concepto),
                 concepto=concepto,
-                importe=ws.get_number(i, 6),
+                importe=importe,
                 saldo=ws.get_number(i, 7)
             )
             arr.append(m)
         yield from reversed(arr)
 
+    def __get_account_index(self, ws: Excel):
+        for row, cel in (
+            (0, 3),
+            (1, 3),
+        ):
+            cnt = self.__get_account(ws, row, cel)
+            if cnt is not None:
+                return row, cel, cnt
+        return None
+
+    def __get_account(self, ws: Excel, row: int, cel: int):
+        cnt = ws.get_word(row, cel)
+        if cnt is not None and re.match(r"ES\d+", cnt):
+            return cnt
+
     def _check_file(self):
         if self.path.suffix != ".xls":
             raise IsNotForMeException(f"{self.path}")
         ws: Excel = FM.load(self.path)
-        cnt = ws.get_word(1, 3)
-        if cnt is None:
-            raise IsNotForMeException(f"{self.path}")
-        if re.match(r"ES\d+", cnt) is None:
+        cntI = self.__get_account_index(ws)
+        if cntI is None:
             raise IsNotForMeException(f"{self.path}")

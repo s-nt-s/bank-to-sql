@@ -100,6 +100,10 @@ class Xls(Excel):
         self.ws: Sheet = self.wb.sheet_by_index(0)
 
     def get(self, row: int, col: int):
+        if row >= self.ws.nrows:
+            return None
+        if col >= self.ws.ncols:
+            return None
         return self.ws.cell(row, col).value
 
     def get_date(self, row: int, col: int):

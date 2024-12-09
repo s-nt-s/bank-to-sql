@@ -27,6 +27,9 @@ def get_dec(x: float):
 
 
 def safe_sum(*arr) -> float:
+    arr = [a for a in arr if a is not None]
+    if len(arr) == 0:
+        return 0
     tot = sum(map(lambda x: round(x, 2), arr))
     return round(tot, 2)
 
