@@ -56,8 +56,12 @@ function monthAdd(d1, m) {
         m = 12+(m%12);
     }
     let new_m = (m1+m);
-    const y1 = Math.floor(new_m/12);
-    const m2 = new_m%12;
+    let y1 = Math.floor(new_m/12);
+    let m2 = new_m%12;
+    if (m2 == 0) {
+        m2 = 12;
+        y1 = y1 - 1;
+    }
     const m2s = m2.toString().padStart(2, '0');
     return `${y+y1}-${m2s}`;
 }
