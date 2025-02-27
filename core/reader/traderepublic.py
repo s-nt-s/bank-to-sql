@@ -1,6 +1,5 @@
 from pathlib import Path
 from typing import Union
-import pdftotext
 import re
 from datetime import date
 from core.movimiento import Movimiento
@@ -28,11 +27,14 @@ def load_trade_republic(file: Union[str, Path]):
     pdf: str = FM.load(file, physical=True)
     cnt = CNT_PREFIX + re.findall(CNT_PREFIX.replace(" ", "")+r"(\d+)", pdf)[0]
     pdf = pdf.split("TRANSACCIONES DE CUENTA")[1]
+    pdf = re.sub(r"^\s*(Trade Republic Bank GmbH|Creado en \d+ \w+ \d+).*Página [\d ]+", "", pdf, flags=re.MULTILINE|re.DOTALL)
     pdf = re.sub(r"^\s*(Trade Republic Bank GmbH|Página [\d ]+|Creado en \d+ \w+ \d+)\s*$", "", pdf, flags=re.MULTILINE)
     pdf = pdf.split("DISCLAIMER")[0]
     pdf = re.sub(r"^\s*\n", "", pdf)
     pdf = re.sub(r"\n\s*$", "", pdf)
     pdf = re.sub(r"^\s+$", "", pdf, flags=re.MULTILINE)
+    with open("/tmp/a.pdf", "w") as f:
+        f.write(pdf)
     return cnt, pdf
 
 
