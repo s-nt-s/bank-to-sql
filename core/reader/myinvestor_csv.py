@@ -8,6 +8,8 @@ from datetime import date
 
 CSV = Tuple[Dict[str, Union[str, int, float]]]
 
+re_sp = re.compile(r"\s+")
+
 
 def is_interes(s: str):
     if not isinstance(s, str):
@@ -47,7 +49,8 @@ def to_num(s: str):
 class MyInvestorReader(Reader):
     def read(self):
         rows: CSV = FM.load(self.path, delimiter=';')
-        cnt = 'ES38 1544 7889 76 ' + FM.load(self.path.parent / "cuenta.txt").strip()
+        cnt = 'ES38 1544 7889 76 ' + FM.load(self.path.parent / "cuenta.txt")
+        cnt = re_sp.sub(r"", cnt)
         arr = []
         for r in rows:
             concepto = r['Concepto']

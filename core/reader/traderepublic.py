@@ -7,6 +7,7 @@ from core.category import SubCategory
 from . import Reader, IsNotForMeException
 from core.filemanager import FM
 
+re_sp = re.compile(r"\s+")
 
 CNT_PREFIX = 'DE37 5021 0900 70 '
 MES = ("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sept", "oct", "nov", "dic")
@@ -35,7 +36,7 @@ def load_trade_republic(file: Union[str, Path]):
     pdf = re.sub(r"^\s+$", "", pdf, flags=re.MULTILINE)
     with open("/tmp/a.pdf", "w") as f:
         f.write(pdf)
-    return cnt, pdf
+    return re_sp.sub(r"", cnt), pdf
 
 
 def _get_subcat(row: str):

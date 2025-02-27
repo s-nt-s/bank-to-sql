@@ -5,6 +5,8 @@ from core.category import SubCategory
 from . import Reader, IsNotForMeException
 from core.filemanager import FM
 
+re_sp = re.compile(r"\s+")
+
 
 def is_interes(s: str):
     if not isinstance(s, str):
@@ -26,6 +28,7 @@ class MyInvestorReader(Reader):
     def read(self):
         ws: Excel = FM.load(self.path)
         cnt = 'ES38 1544 7889 76 ' + ws.get_text(3, 4)
+        cnt = re_sp.sub(r"", cnt)
         arr = []
         for i in range(10, ws.nrows):
             concepto = ws.get_text(i, 3)
