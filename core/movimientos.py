@@ -73,7 +73,7 @@ class Movimientos:
             src = Path(self.source)
             paths = []
             path: Path
-            for path in rglob(src, 'xls', 'xlsx', 'pdf'):
+            for path in rglob(src, 'xls', 'xlsx', 'pdf', 'csv'):
                 m = re_year.match(path.name)
                 if not m:
                     continue

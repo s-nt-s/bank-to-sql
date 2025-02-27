@@ -9,6 +9,7 @@ import pdftotext
 from .excel import Xlsx, Xls
 from datetime import datetime, date
 from dataclasses import asdict, is_dataclass
+import csv as csv_reader
 
 
 logger = logging.getLogger(__name__)
@@ -265,6 +266,11 @@ class FileManager:
             if as_list:
                 return list(pdf)
             return "\n".join(pdf)
+
+    def _load_csv(self, file: Path, *args, **kwargs):
+        with open(file, mode='r', encoding='utf-8') as f:
+            lector = csv_reader.DictReader(f, *args, **kwargs)
+            return tuple(fila for fila in lector)
 
 
 # Mejoras dinámicas en la documentación
