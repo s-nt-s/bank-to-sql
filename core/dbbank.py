@@ -44,6 +44,8 @@ class DBBank(DBLite):
             self.id_txt[table][idTxt] = id
 
     def populate(self, reader: Movimientos):
+        for c, car in reader.iter_cuentas():
+            self.insert("cuenta", txt=c, carpeta=car)
         for c, sub in reader.iter_categorias():
             self.insert("categoria", txt=str(c))
             for s in sub:

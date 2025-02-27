@@ -47,7 +47,7 @@ def to_num(s: str):
 class MyInvestorReader(Reader):
     def read(self):
         rows: CSV = FM.load(self.path, delimiter=';')
-        cnt = 'ES38 1544 7889 76 ' + FM.load(self.path.parent / "cuenta.txt")
+        cnt = 'ES38 1544 7889 76 ' + FM.load(self.path.parent / "cuenta.txt").strip()
         arr = []
         for r in rows:
             concepto = r['Concepto']

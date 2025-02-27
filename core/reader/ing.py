@@ -90,8 +90,14 @@ class IngReader(Reader):
             return None
         if re.match(r"ES\d+", cnt):
             return cnt
-        if cnt.isdigit() and len(cnt) == 20:
-            return 'ES26' + cnt
+        if not cnt.isdigit() or len(cnt) != 20:
+            return None
+        txt = FM.safe_load(self.path.parent / "cuenta.txt")
+        if not isinstance(txt, str):
+            return None
+        txt = txt.strip()
+        if txt.endswith(cnt):
+            return txt
 
     def _check_file(self):
         if self.path.suffix != ".xls":

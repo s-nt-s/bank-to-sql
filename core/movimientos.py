@@ -7,7 +7,7 @@ from functools import cached_property
 from dataclasses import dataclass
 from datetime import date
 from core.reader import Reader, IsNotForMeException
-from typing import Generator
+from typing import Generator, NamedTuple
 import logging
 from .category import SubCategory, Category
 
@@ -39,6 +39,11 @@ def rglob(path: Path, *ext):
         yield from path.rglob("*."+e)
 
 
+class MovFile(NamedTuple):
+    path: Path
+    content: tuple[Movimiento]
+
+
 @dataclass(frozen=True)
 class Movimientos:
     source: str
@@ -48,16 +53,11 @@ class Movimientos:
     def items(self) -> tuple[Movimiento]:
         items: set[Movimiento] = set()
         index: dict[Movimiento, tuple[str, int]] = {}
-        for path in self.iter_path():
-            reader = self.__get_reader(path)
-            if reader is None:
-                continue
-            for i, m in enumerate(reader.read()):
-                if m.importe == 0:
-                    continue
+        for fm in self.files:
+            for i, m in enumerate(fm.content):
                 items.add(m)
-                if m not in index or index[m][0] > path.name:
-                    index[m] = (path.name, i)
+                if m not in index or index[m][0] > fm.path.name:
+                    index[m] = (fm.path.name, i)
         movs = sorted(items, key=lambda m: (m.fecha, index[m]))
 
         def s_key(m: Movimiento):
@@ -65,6 +65,19 @@ class Movimientos:
             return tuple(k)
         movs = sorted(movs, key=s_key)
         return tuple(movs)
+
+    @cached_property
+    def files(self) -> tuple[MovFile]:
+        arr: list[MovFile] = []
+        for path in self.iter_path():
+            reader = self.__get_reader(path)
+            if reader is None:
+                continue
+            content = tuple(m for m in reader.read() if m.importe!=0)
+            if len(content) == 0:
+                continue
+            arr.append(MovFile(path=reader.path, content=content))
+        return tuple(arr)
 
     def iter_path(self) -> Generator[Path, None, None]:
         if isfile(self.source):
@@ -129,3 +142,14 @@ class Movimientos:
             sub = sorted(cat[c], key=lambda s: str(s))
             if len(sub) > 0:
                 yield c, sub
+
+    def iter_cuentas(self):
+        cnt: dict[str, set[str]] = {}
+        for fm in self.files:
+            c = fm.content[0].cuenta
+            if c not in cnt:
+                cnt[c] = set()
+            cnt[c].add(fm.path.parent.name)
+
+        for c in sorted(cnt.keys()):
+            yield c, " ".join(sorted(cnt[c]))
