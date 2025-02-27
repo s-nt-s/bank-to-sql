@@ -9,7 +9,7 @@ from core.filemanager import FM
 def _get_subcat(c: str, s: str, concepto: str):
     if (c, s) == (None, None):
         return SubCategory.SIN_SUBCATEGORIA
-    if s == "Farmacia":
+    if s in ("Farmacia", "Farmacia, herbolario y nutrición"):
         return SubCategory.FARMACIA_HERBOLARIO_NUTRICION
     if s == "Taxis":
         return SubCategory.TAXI_CARSHARING
@@ -33,6 +33,8 @@ def _get_subcat(c: str, s: str, concepto: str):
         return SubCategory.OTRAS_INVERSIONES
     if s == "Libros, música y videojuegos":
         return SubCategory.LIBROS_MUSICA_JUEGOS
+    if s == 'Dentista, médico':
+        return SubCategory.DENTISTA_MEDICO
     if concepto in ('Traspaso emitido Cuenta Nómina', 'Traspaso recibido Cuenta Nómina'):
         return SubCategory.TRANSACCION_CUENTAS
     sub = SubCategory.find(s)
@@ -85,8 +87,12 @@ class IngReader(Reader):
 
     def __get_account(self, ws: Excel, row: int, cel: int):
         cnt = ws.get_word(row, cel)
-        if cnt is not None and re.match(r"ES\d+", cnt):
+        if not isinstance(cnt, str):
+            return None
+        if re.match(r"ES\d+", cnt):
             return cnt
+        if cnt.isdigit() and len(cnt) == 20:
+            return 'ES26' + cnt
 
     def _check_file(self):
         if self.path.suffix != ".xls":
