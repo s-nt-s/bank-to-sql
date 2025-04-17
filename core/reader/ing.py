@@ -21,7 +21,7 @@ def _get_subcat(c: str, s: str, concepto: str):
         return SubCategory.HOGAR_OTROS
     if s == "Tren, avión, transporte":
         return SubCategory.BILLETES_VIAJE
-    if s == "Transacción entre cuentas de ahorro":
+    if s in ("Transacción entre cuentas de ahorro", 'Traspaso entre cuentas'):
         return SubCategory.TRANSACCION_CUENTAS
     if s == "Abono de intereses":
         return SubCategory.ABONO_INTERESES
@@ -35,6 +35,10 @@ def _get_subcat(c: str, s: str, concepto: str):
         return SubCategory.LIBROS_MUSICA_JUEGOS
     if s == 'Dentista, médico':
         return SubCategory.DENTISTA_MEDICO
+    if s in ('Pago de impuestos', 'Impuestos hogar'):
+        return SubCategory.IMPUESTOS_OTROS
+    if s == 'Alquiler vivienda':
+        return SubCategory.ALQUILER
     if concepto in ('Traspaso emitido Cuenta Nómina', 'Traspaso recibido Cuenta Nómina'):
         return SubCategory.TRANSACCION_CUENTAS
     sub = SubCategory.find(s)

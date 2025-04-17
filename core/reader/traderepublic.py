@@ -30,7 +30,7 @@ def load_trade_republic(file: Union[str, Path]):
     pdf = pdf.split("TRANSACCIONES DE CUENTA")[1]
     pdf = re.sub(r"^\s*(Trade Republic Bank GmbH|Creado en \d+ \w+ \d+).*Página [\d ]+", "", pdf, flags=re.MULTILINE|re.DOTALL)
     pdf = re.sub(r"^\s*(Trade Republic Bank GmbH|Página [\d ]+|Creado en \d+ \w+ \d+)\s*$", "", pdf, flags=re.MULTILINE)
-    pdf = pdf.split("DISCLAIMER")[0]
+    pdf = re.sub(r"(DISCLAIMER|RESUMEN DEL BALANCE).*", "", pdf, flags=re.DOTALL)
     pdf = re.sub(r"^\s*\n", "", pdf)
     pdf = re.sub(r"\n\s*$", "", pdf)
     pdf = re.sub(r"^\s+$", "", pdf, flags=re.MULTILINE)
