@@ -39,6 +39,8 @@ def _get_subcat(c: str, s: str, concepto: str):
         return SubCategory.IMPUESTOS_OTROS
     if s == 'Alquiler vivienda':
         return SubCategory.ALQUILER
+    if s == 'Deporte y gimnasio':
+        return SubCategory.DEPORTE_GIMNASIO
     if concepto in ('Traspaso emitido Cuenta Nómina', 'Traspaso recibido Cuenta Nómina'):
         return SubCategory.TRANSACCION_CUENTAS
     sub = SubCategory.find(s)
