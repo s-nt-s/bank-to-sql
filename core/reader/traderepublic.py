@@ -9,7 +9,6 @@ from core.filemanager import FM
 
 re_sp = re.compile(r"\s+")
 
-CNT_PREFIX = 'DE37 5021 0900 70 '
 MES = ("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sept", "oct", "nov", "dic")
 re_sp = re.compile(r"\s+")
 
@@ -24,9 +23,16 @@ def _to_num(s: str):
     return i if i == f else f
 
 
+def find_account(txt: str):
+    for prefix in ('DE37 5021 0900 70', 'ES42 1586 0001 44'):
+        for m in re.findall(prefix.replace(" ", "")+r"(\d+)", txt):
+            return f"{prefix} {m}"
+    raise ValueError("Account not found in the document.")
+
+
 def load_trade_republic(file: Union[str, Path]):
     pdf: str = FM.load(file, physical=True)
-    cnt = CNT_PREFIX + re.findall(CNT_PREFIX.replace(" ", "")+r"(\d+)", pdf)[0]
+    cnt = find_account(pdf)
     pdf = pdf.split("TRANSACCIONES DE CUENTA")[1]
     pdf = re.sub(r"^\s*(Trade Republic Bank GmbH|Creado en \d+ \w+ \d+).*Página [\d ]+", "", pdf, flags=re.MULTILINE|re.DOTALL)
     pdf = re.sub(r"^\s*(Trade Republic Bank GmbH|Página [\d ]+|Creado en \d+ \w+ \d+)\s*$", "", pdf, flags=re.MULTILINE)
