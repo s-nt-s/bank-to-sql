@@ -183,7 +183,10 @@ class FileManager:
         }.get(ext, ext)
 
     def exist(self, file: Union[Path, str]):
-        return self.resolve_path(file).exists()
+        try:
+            return self.resolve_path(file).exists()
+        except OSError:
+            return False
 
     def remove(self, file: Union[Path, str]):
         file = self.resolve_path(file)
