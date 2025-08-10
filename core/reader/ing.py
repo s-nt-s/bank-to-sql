@@ -11,7 +11,7 @@ def _get_subcat(c: str, s: str, concepto: str):
         return SubCategory.SIN_SUBCATEGORIA
     if s in ("Farmacia", "Farmacia, herbolario y nutrición"):
         return SubCategory.FARMACIA_HERBOLARIO_NUTRICION
-    if s == "Taxis":
+    if s in ("Taxis", "Taxis y Carsharing"):
         return SubCategory.TAXI_CARSHARING
     if s == "Educación":
         return SubCategory.EDUCACION
