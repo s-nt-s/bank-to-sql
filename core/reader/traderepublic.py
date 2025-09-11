@@ -86,8 +86,8 @@ class TradeRepublicReader(Reader):
 
 
 def get_date(row: str):
-    txt = " ".join(r[:11] for r in row.split("\n"))
-    m = re.search(r"(\d{2})\s*("+("|".join(MES))+")\s*(\d{4})", txt)
+    txt = " ".join(r[:12].rstrip() for r in row.split("\n"))
+    m = re.search(r"(\d{2})\s*("+("|".join(MES))+r")\s*(\d{4})", txt)
     if m is None:
         raise ValueError(f"Date not found in:\n{row}")
     d, m, y = m.groups()
