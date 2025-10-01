@@ -30,18 +30,39 @@ def find_account(txt: str):
     raise ValueError("Account not found in the document.")
 
 
+def mk_re(*arr: str):
+    res: list[str] = []
+    for s in map(str.strip, arr):
+        if s:
+            res.append(r"\s*".join(map(re.escape, s.split())))
+    r = r"|".join(res)
+    return "("+r+")"
+
+
 def load_trade_republic(file: Union[str, Path]):
     pdf: str = FM.load(file, physical=True)
     cnt = find_account(pdf)
-    pdf = pdf.split("TRANSACCIONES DE CUENTA")[1]
-    pdf = re.sub(r"^\s*(Trade Republic Bank GmbH|Creado en \d+ \w+ \d+).*Página [\d ]+", "", pdf, flags=re.MULTILINE|re.DOTALL)
-    pdf = re.sub(r"^\s*(Trade Republic Bank GmbH|Página [\d ]+|Creado en \d+ \w+ \d+)\s*$", "", pdf, flags=re.MULTILINE)
-    pdf = re.sub(r"(DISCLAIMER|RESUMEN DEL BALANCE).*", "", pdf, flags=re.DOTALL)
+    pdf = re.sub(r".*"+mk_re("TRANSACCIONES DE CUENTA"), "", pdf, flags=re.DOTALL)
+    pdf = re.sub(mk_re("RESUMEN DEL BALANCE", "DISCLAIMER", "NOTAS SOBRE EL EXTRACTO DE CUENTA")+r".*", "", pdf, flags=re.DOTALL)
+
+    pdf = re.sub(r"^\s*(Trade Republic Bank GmbH|Creado en \d+ \w+ \d+[\d,:]*|Página \d+ (de )?\d+)\s*$", "", pdf, flags=re.MULTILINE|re.DOTALL)
+    pdf = re.sub(r"^\s*Creado en \d+ \w+ \d+[\d,: ]*\s*Página \d+ (de )?\d+\s*$", "", pdf, flags=re.MULTILINE|re.DOTALL)
+    pdf = re.sub(mk_re('''
+        Trade Republic Bank GmbH, Sucursal en España www.traderepublic.es Domicilio social: Trade Republic Bank GmbH                    Directores generales
+        C/ Velazquez 50 - Planta 5                   NIF-IVA DE307510626 Brunnenstrasse 19-21, 10119 Berlín, Alemania                   Andreas Torner
+        28001, Madrid, Madrid                                             Registrada en el Registro Mercantil del juzgado local de      Gernot Mittendorfer
+        NIF: W0322893I                                                    Charlottenburg con el número HRB 244347 B, Alemania           Christian Hecker
+                                                                                                                                        Thomas Pischke
+    '''), "", pdf)
+    pdf = re.sub(mk_re('''
+        TRADE REPUBLIC BANK GMBH, SUCURSAL EN ESPAÑA C/ VELAZQUEZ 50 - PLANTA 5, MADRID 28001 - MADRID
+    '''), "", pdf)
+    pdf = re.sub(
+        r"\n\s*" + mk_re("FECHA TIPO DESCRIPCIÓN ENTRADA DE DINERO SALIDA DE DINERO BALANCE") + r"\s*\n",
+        "\n\n", pdf, flags=re.MULTILINE|re.DOTALL)
     pdf = re.sub(r"^\s*\n", "", pdf)
     pdf = re.sub(r"\n\s*$", "", pdf)
     pdf = re.sub(r"^\s+$", "", pdf, flags=re.MULTILINE)
-    with open("/tmp/a.pdf", "w") as f:
-        f.write(pdf)
     return re_sp.sub(r"", cnt), pdf
 
 
