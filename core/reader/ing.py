@@ -41,6 +41,8 @@ def _get_subcat(c: str, s: str, concepto: str):
         return SubCategory.ALQUILER
     if s == 'Deporte y gimnasio':
         return SubCategory.DEPORTE_GIMNASIO
+    if s == "Óptica":
+        return SubCategory.OPTICA
     if concepto in ('Traspaso emitido Cuenta Nómina', 'Traspaso recibido Cuenta Nómina'):
         return SubCategory.TRANSACCION_CUENTAS
     sub = SubCategory.find(s)

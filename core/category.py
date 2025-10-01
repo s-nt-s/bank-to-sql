@@ -14,6 +14,7 @@ class SubCategory(Enum):
 
     # Educación, salud y deporte
     DENTISTA_MEDICO = "Dentista, médico"
+    OPTICA = "Óptica"
     DEPORTE_GIMNASIO = "Deporte y gimnasio"
     EDUCACION = "Educación"
     FARMACIA_HERBOLARIO_NUTRICION = "Farmacia, herbolario y nutrición"
@@ -127,6 +128,7 @@ class Category(Enum):
     EDUCACION_SALUD_DEPORTE = mkCat(
         "Educación, salud y deporte",
         SubCategory.DENTISTA_MEDICO,
+        SubCategory.OPTICA,
         SubCategory.DEPORTE_GIMNASIO,
         SubCategory.EDUCACION,
         SubCategory.FARMACIA_HERBOLARIO_NUTRICION,
@@ -229,4 +231,3 @@ class Category(Enum):
             if sub in c.value.subs:
                 return c
         raise ValueError(f"Subcategory {sub} not found in any category")
-
