@@ -57,7 +57,7 @@ class IngReader(Reader):
         ws: Excel = FM.load(self.path)
         ini, _, cnt = self.__get_account_index(ws)
         arr = []
-        for i in range(ini+5, ws.nrows):
+        for i in range(ini+4, ws.nrows):
             fecha = None
             try:
                 fecha = ws.get_date(i, 0)
