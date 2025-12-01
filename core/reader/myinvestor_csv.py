@@ -43,7 +43,7 @@ def to_num(s: str):
         raise ValueError("El argumento ha de ser un str")
     f = float(s.replace('.', '').replace(',', '.'))
     i = int(f)
-    return i if f==i else f
+    return i if f == i else f
 
 
 class MyInvestorReader(Reader):
@@ -60,7 +60,8 @@ class MyInvestorReader(Reader):
                 subcategoria=_get_subcat(concepto),
                 concepto=concepto,
                 importe=to_num(r['Importe']),
-                saldo=None
+                saldo=None,
+                index=len(arr)
             )
             arr.append(m)
         yield from arr
