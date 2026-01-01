@@ -82,7 +82,10 @@ class TradeRepublicReader(Reader):
     def read(self):
         cnt, pdf = load_trade_republic(self.path)
         arr: list[Movimiento] = []
-        for row in pdf.split("\n\n")[1:]:
+        lines = pdf.split("\n\n")
+        head = re_sp.sub(" ", lines[0]).strip()
+        lines = [ln for ln in lines if re_sp.sub(" ", ln).strip() != head]
+        for row in lines:
             concepto = get_concepto(row)
             imp, saldo = get_importe_saldo(row)
             if (arr and arr[-1].saldo > saldo):

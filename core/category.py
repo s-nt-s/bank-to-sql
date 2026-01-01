@@ -66,6 +66,7 @@ class SubCategory(Enum):
     ONG = "ONG"
     OTROS_GASTOS_OTROS = "Otros gastos (otros)"
     TRANSFERENCIAS = "Transferencias"
+    OTROS_SEGUROS = "Otros seguros"
 
     # Otros ingresos
     ALQUILER = "Alquiler"
@@ -193,7 +194,8 @@ class Category(Enum):
         SubCategory.COMISIONES_INTERESES,
         SubCategory.ONG,
         SubCategory.OTROS_GASTOS_OTROS,
-        SubCategory.TRANSFERENCIAS
+        SubCategory.TRANSFERENCIAS,
+        SubCategory.OTROS_SEGUROS
     )
 
     OTROS_INGRESOS = mkCat(

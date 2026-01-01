@@ -41,6 +41,10 @@ class Excel(ABC):
     def nrows(self) -> int:
         ...
 
+    @property
+    def ncols(self) -> int:
+        ...
+
     def get_text(self, row: int, col: int):
         s = self.get(row, col)
         if s is None:
@@ -117,6 +121,10 @@ class Xls(Excel):
     def nrows(self):
         return self.ws.nrows
 
+    @property
+    def ncols(self):
+        return self.ws.ncols
+
 
 class Xlsx(Excel):
     def __init__(self, path: Union[str, Path]):
@@ -129,3 +137,7 @@ class Xlsx(Excel):
     @property
     def nrows(self):
         return self.ws.max_row
+
+    @property
+    def ncols(self):
+        return self.ws.max_column

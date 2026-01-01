@@ -5,6 +5,8 @@ from core.category import SubCategory
 import re
 from core.filemanager import FM
 
+re_sp = re.compile(r"\s+")
+
 
 def _get_subcat(c: str, s: str, concepto: str):
     if (c, s) == (None, None):
@@ -53,11 +55,23 @@ def _get_subcat(c: str, s: str, concepto: str):
 
 
 class IngReader(Reader):
+
+    def __find_cell(self, ws: Excel, name: str):
+        for r in range(ws.nrows):
+            for c in range(ws.ncols):
+                val = ws.get(r, c)
+                if isinstance(val, str):
+                    val = re_sp.sub(" ", val).strip()
+                    if val == name:
+                        return r, c
+        raise ValueError(f"{name} not found in {self.path}")
+
     def read(self):
         ws: Excel = FM.load(self.path)
-        ini, _, cnt = self.__get_account_index(ws)
+        cnt = self.__find_account(ws)
         arr = []
-        for i in range(ini+4, ws.nrows):
+        imp_row, imp_cel = self.__find_cell(ws, 'IMPORTE (€)')
+        for i in range(imp_row+1, ws.nrows):
             fecha = None
             try:
                 fecha = ws.get_date(i, 0)
@@ -68,9 +82,7 @@ class IngReader(Reader):
             categoria = ws.get_text(i, 1)
             subcategoria = ws.get_text(i, 2)
             concepto = ws.get_text(i, 3)
-            importe = ws.get_number(i, 6)
-            if importe is None:
-                importe = ws.get_number(i, 5)
+            importe = ws.get_number(i, imp_cel)
             m = Movimiento(
                 cuenta=cnt,
                 fecha=fecha,
@@ -82,14 +94,14 @@ class IngReader(Reader):
             arr.append(m)
         yield from reversed(arr)
 
-    def __get_account_index(self, ws: Excel):
+    def __find_account(self, ws: Excel):
         for row, cel in (
             (0, 3),
             (1, 3),
         ):
             cnt = self.__get_account(ws, row, cel)
             if cnt is not None:
-                return row, cel, cnt
+                return cnt
         return None
 
     def __get_account(self, ws: Excel, row: int, cel: int):
@@ -111,6 +123,6 @@ class IngReader(Reader):
         if self.path.suffix != ".xls":
             raise IsNotForMeException(f"{self.path}")
         ws: Excel = FM.load(self.path)
-        cntI = self.__get_account_index(ws)
+        cntI = self.__find_account(ws)
         if cntI is None:
             raise IsNotForMeException(f"{self.path}")
