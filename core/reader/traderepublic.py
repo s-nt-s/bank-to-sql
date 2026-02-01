@@ -88,7 +88,9 @@ class TradeRepublicReader(Reader):
         for row in lines:
             concepto = get_concepto(row)
             imp, saldo = get_importe_saldo(row)
-            if (arr and arr[-1].saldo > saldo):
+            if re.search("^Outgoing", concepto, re.I):
+                imp = -imp
+            elif arr and arr[-1].saldo > saldo:
                 imp = -imp
             arr.append(Movimiento(
                 cuenta=cnt,
@@ -110,7 +112,7 @@ class TradeRepublicReader(Reader):
 
 
 def get_date(row: str):
-    txt = " ".join(r[:12].rstrip() for r in row.split("\n"))
+    txt = " ".join(r[:11].rstrip() for r in row.split("\n"))
     m = re.search(r"(\d{2})\s*("+("|".join(MES))+r")\s*(\d{4})", txt)
     if m is None:
         raise ValueError(f"Date not found in:\n{row}")

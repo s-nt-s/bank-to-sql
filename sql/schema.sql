@@ -52,6 +52,8 @@ from
   movimiento m 
   join subcategoria s on m.subcategoria=s.id
   join categoria c on s.categoria=c.id
+order by
+  m.fecha desc
 ;
 
 create VIEW RESUMEN_DIARIO as
