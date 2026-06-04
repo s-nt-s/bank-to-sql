@@ -56,6 +56,56 @@ order by
   m.fecha desc
 ;
 
+create VIEW MOV_DIARIO AS
+select
+  fecha,
+  categoria,
+  subcategoria,
+  concepto,
+  sum(importe) importe
+from (
+  select
+    fecha,
+    CASE
+      WHEN importe>0 and subcategoria in (
+        'Abono de intereses',
+        'Nómina o Pensión',
+        'Alquiler'
+      ) THEN 'Rentas'
+      ELSE categoria
+    END categoria,
+    CASE
+      WHEN importe>0 and subcategoria in (
+        'Abono de intereses',
+        'Nómina o Pensión',
+        'Alquiler'
+      ) THEN 'Rentas'
+      ELSE subcategoria
+    END subcategoria,
+    CASE
+      WHEN importe>0 and subcategoria in (
+        'Abono de intereses',
+        'Nómina o Pensión',
+        'Alquiler'
+      ) THEN 'Rentas'
+      WHEN subcategoria = 'Transacción entre cuentas' THEN subcategoria
+      ELSE concepto
+    END concepto,
+    importe
+  from
+    MOV
+) aux
+group by
+  fecha,
+  categoria,
+  subcategoria,
+  concepto
+having
+  sum(importe) != 0
+order by
+  fecha desc
+;
+
 create VIEW RESUMEN_DIARIO as
 select
   fecha,
