@@ -11,6 +11,8 @@ class SubCategory(Enum):
     COMPRAS_OTROS = "Compras (otros)"
     REGALOS_JUGUETES = "Regalos y juguetes"
     ROPA_COMPLEMENTOS = "Ropa y complementos"
+    ELECTRONICA = "Electrónica"
+    SUSCRIPCIONES = "Suscripciones"
 
     # Educación, salud y deporte
     DENTISTA_MEDICO = "Dentista, médico"
@@ -123,7 +125,8 @@ class Category(Enum):
         SubCategory.BELLEZA_PELUQUERIA_PERFUMERIA,
         SubCategory.COMPRAS_OTROS,
         SubCategory.REGALOS_JUGUETES,
-        SubCategory.ROPA_COMPLEMENTOS
+        SubCategory.ROPA_COMPLEMENTOS,
+        SubCategory.ELECTRONICA,
     )
 
     EDUCACION_SALUD_DEPORTE = mkCat(
@@ -195,7 +198,8 @@ class Category(Enum):
         SubCategory.ONG,
         SubCategory.OTROS_GASTOS_OTROS,
         SubCategory.TRANSFERENCIAS,
-        SubCategory.OTROS_SEGUROS
+        SubCategory.OTROS_SEGUROS,
+        SubCategory.SUSCRIPCIONES
     )
 
     OTROS_INGRESOS = mkCat(
