@@ -87,6 +87,7 @@ class SubCategory(Enum):
     TAXI_CARSHARING = "Taxi y Carsharing"
     TRANSPORTE_PUBLICO = "Transporte público"
     VEHICULO = "Mantenimiento de vehículo"
+    GASOLINA = "Gasolina y combustible"
 
     def __str__(self) -> str:
         return self.value
@@ -225,7 +226,8 @@ class Category(Enum):
         "Vehículo y transporte",
         SubCategory.TAXI_CARSHARING,
         SubCategory.TRANSPORTE_PUBLICO,
-        SubCategory.VEHICULO
+        SubCategory.VEHICULO,
+        SubCategory.GASOLINA
     )
 
     def __str__(self) -> str:
